@@ -16,7 +16,6 @@ Project Outline:
   2. You need to get protein sequences and extract relevant features that are representative of
     the protein sequences. You can also use the features that are already available. You are
     required to extract three different groups of features:
-    
     2.1 Physicochemical-based features: These are extracted based on the physical, chemical, and
     physicochemical properties of proteins, peptides, and amino acids. You can get more information on how
     to extract these features from the following articles. You need to use the numerical values of these
