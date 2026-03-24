@@ -5,8 +5,8 @@ Project Outline:
   1. You are provided with two text files in the group project module, namely train and test.
      In these files, each record consists of 2 lines (the first line starts with “>”) as shown below:
         
-        - >peptide|1
-        - EITVEPVRHPKKDPSEAE
+      $  - >peptide|1$
+       $ - EITVEPVRHPKKDPSEAE$
      
      - The first line consists of “>peptide” followed by “|” and after that “0” or “1”. Peptides demonstrate the
      nature of the input that is presented in the next line. The number after the “|” is the label. Label “0”
