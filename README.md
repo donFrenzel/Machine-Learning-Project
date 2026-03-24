@@ -13,7 +13,7 @@ Project Outline:
      represents “toxic peptides” and label “0” represents non-toxic peptides. The following line is the
      corresponding peptide sequence.
 
-  2. You need to get protein sequences and extract relevant features that are representative of
+2. You need to get protein sequences and extract relevant features that are representative of
     the protein sequences. You can also use the features that are already available. You are
     required to extract three different groups of features:
 
