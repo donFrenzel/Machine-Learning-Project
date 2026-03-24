@@ -37,6 +37,7 @@ Project Outline:
     - Ferdous_etal_2024
     - Muhammod_etal_2019
     - Chen_etal_2018
+   
     2.3 Protein encoding using Protein Language Models (PLMs): PLMs are Large Language Models (LLMs)
     that are trained on large protein databases and generate corresponding numerical encoding of proteins.
     Such encoding can be used as input features for different machine learning models.
