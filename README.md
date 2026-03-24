@@ -45,3 +45,12 @@ Project Outline:
     (More information on what PLM is and several different PLMs that you can use is provided in
     “Protein_Language_Model” that is provided in the “Project” module.
     You can use any of these PLMs (whichever you find more interesting, informative, or easier to use).
+
+3. You will need to prepare the data (properly put them together with labels) and use different
+machine learning methods on them (e.g., K-Nearest Neighbor (KNN), Support Vector Machine
+(SVM), Naïve Bayes, Artificial Neural Network (ANN), Random Forest, Bagging). As the data
+suggest, the problem is hand is a multi-class classification task.
+
+    - You are required to use at least one deep learning architecture (e.g., Convolutional Neural Network
+    (CNN), which is suitable when the input data is in matrix format). More information can be found in
+    “Azim_etal_2023” in the group project module.
