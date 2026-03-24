@@ -54,3 +54,13 @@ suggest, the problem is hand is a multi-class classification task.
     - You are required to use at least one deep learning architecture (e.g., Convolutional Neural Network
     (CNN), which is suitable when the input data is in matrix format). More information can be found in
     “Azim_etal_2023” in the group project module.
+
+4. You then need to analyze and interpret your output using different approaches, such as:
+    - 3.1: Using an independent test set (provided in the group project module)
+    - 3.2: k-fold cross-validation
+    - 3.3: check different accuracy measurements (e.g., accuracy, sensitivity, specificity, Matthews
+    Correlation Coefficient (MCC))
+    - 3.4: Discuss your results and interpret the output (analyze the results with respect to the features
+    and classifiers to demonstrate each one's effectiveness and importance (every single feature
+    group and classifier being used)).
+    
