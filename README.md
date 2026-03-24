@@ -64,3 +64,9 @@ suggest, the problem is hand is a multi-class classification task.
     and classifiers to demonstrate each one's effectiveness and importance (every single feature
     group and classifier being used)).
     
+**Note: You need to do your project in the Python programming language (except the CCIB student that
+can also use the R programming language).**
+
+As the output: You will prepare a report (in Word or text document) that explains what you did in each
+and every step in detail and presents your results, analysis, and discussion (no more than 6 pages). You
+will also send your code with proper comments along with your report.
