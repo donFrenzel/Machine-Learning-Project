@@ -9,7 +9,7 @@ Project Outline:
         - EITVEPVRHPKKDPSEAE
      
      The first line consists of “>peptide” followed by “|” and after that “0” or “1”. Peptides demonstrate the
-     nature of the input that is presented in the next line. The number after the “|” is the label. Label “0”
+     nature of the input that is presented in the next line. The number after the “|” is the label. Label “1”
      represents “toxic peptides” and label “0” represents non-toxic peptides. The following line is the
      corresponding peptide sequence.
 
