@@ -12,6 +12,7 @@ from Bio import SeqIO
 ### Take fasta file and basically turn it into the ideal pandas dataframe that can be used to actually prep the data for the ML that's gonna happen. 
 def fastaConverter(filename):
     dataList = []
+    ###Opens it as a handle which is just slightly easier to do and then uses the SeqIO part of biopython to sort through it and give a more modifiable result.  
     with open(filename,"r") as handle:
         for entry in SeqIO.parse(handle, "fasta"):
              dataList.append({
