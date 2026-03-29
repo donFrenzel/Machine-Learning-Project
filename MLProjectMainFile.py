@@ -16,7 +16,7 @@ def fastaConverter(filename):
     with open(filename,"r") as handle:
         for entry in SeqIO.parse(handle, "fasta"):
              dataList.append({
-                    'id': entry.id,
+                    'id': entry.id[8],
                     'sequence': str(entry.seq),
                     'length': len(entry.seq)})
         #figure out how to split the id into the boolean var and the word 'peptide'
