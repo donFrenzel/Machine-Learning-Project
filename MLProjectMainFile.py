@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 ###Alternatively, using biopython might be better, especially since fastaframes didn't separate the columns correctly.  
 from Bio import SeqIO
 
+### Take fasta file and basically turn it into the ideal pandas dataframe that can be used to actually prep the data for the ML that's gonna happen. 
 def fastaConverter(filename):
     dataList = []
     with open(filename,"r") as handle:
