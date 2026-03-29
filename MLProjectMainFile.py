@@ -11,17 +11,21 @@ from fastaframes import to_df
 from fastaframes import fasta_to_entries, entries_to_fasta
 
 ###Alternatively, using biopython might be better, especially since fastaframes didn't separate the columns correctly.  
+from Bio import SeqIO
 
+def fastaConverter(filename):
+    dataList = []
+    with open(filename,"r") as handle:
+        for entry in SeqIO.parse(handle, "fasta"):
+             dataList.append({
+                    'id': entry.id,
+                    'sequence': str(entry.seq),
+                    'length': len(entry.seq)})
+        #figure out how to split the id into the boolean var and the word 'peptide'
 
-trainFrame = to_df("Train.fasta")
-#print(trainFrame)
-print(trainFrame.head())
+    dataframe = pd.DataFrame(dataList)
 
-##trainFrame does hold all of the data but the issue is that it hasn't been separated at all to match our needs for the confirmed 1/0 classification since it isn't isolated.  
-for entry in fasta_to_entries("Train.fasta"):
-    print(entry.protein_id, entry.protein_sequence, entry.unique_identifier)
-'''
-# Filter and write back
-entries = [e for e in fasta_to_entries("Train.fasta") if e.organism_name == "Homo sapiens"]
-entries_to_fasta(entries, output_file="human_only.fasta")
-'''
+    return dataframe
+
+trainingData = fastaConverter('Train.fasta')
+print(trainingData)
