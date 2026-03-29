@@ -6,10 +6,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-###Fastaframes is like pandas but specific to bioInformatics for dataframe loading. 
-from fastaframes import to_df
-from fastaframes import fasta_to_entries, entries_to_fasta
-
 ###Alternatively, using biopython might be better, especially since fastaframes didn't separate the columns correctly.  
 from Bio import SeqIO
 
