@@ -43,7 +43,8 @@ print(trainingData)
 
 ### First goal will be to group based on physiochemical properties of Amino Acids.  Not sure how one would go about doing this.  
 
-### Second is a group based on the alphabetical properties of the given peptides: Examples of such features are amino acid composition(AAC)(percentage of each of standard 20 amino acids
+### Second is a group based on the alphabetical properties of the given peptides: Examples of such features are amino acid composition(AAC)(percentage of 
+### each of standard 20 amino acids
 ### present in the sequence), occurrence (count of each amino acid within the sequence), and bi-gram (frequency of two adjacent amino acids, pair or dipeptide, in the sequence).
 ### so far, the first has been computed and loaded into a csv.  
 
