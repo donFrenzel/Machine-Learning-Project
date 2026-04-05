@@ -35,16 +35,16 @@ sequences = trainingData.sequence
 
 ### Import stuff/methods to extract features from the sequence data.
 
-### 3 Different Groups of Features Required.  1 Deep Learning Architecture also Required (DeepAmp preferred).
+### 3 Different Groups of Features Required.
 
 ### Could actually group into feature 'groups' and analyze different feature groups within the peptide to create a measure of whether they are poisonous or not.
 
-### First goal will be to group based on physiochemical properties of Amino Acids.  Not sure how one would go about doing this.  
+### First goal will be to group based on physiochemical properties of Amino Acids.  Not sure how one would go about doing this.  [Rohan]
 
 ### Second is a group based on the alphabetical properties of the given peptides: Examples of such features are amino acid composition(AAC)(percentage of 
 ### each of standard 20 amino acids
 ### present in the sequence), occurrence (count of each amino acid within the sequence), and bi-gram (frequency of two adjacent amino acids, pair or dipeptide, in the sequence).
-### so far, the first has been computed and loaded into a csv.  
+### so far, the first has been computed and loaded into a csv.  [Don][Fulfilled]
 
 ### Create functions for getting AAC (Count of a given amino acid within the sequence and then divide it by the length of the sequence, do for all and output as a 
 ### dict that can then be converted into a dataframe itself.  Returns a dataframe where each column is the normalized count of each amino acid.  
@@ -123,4 +123,15 @@ print(bigramTest)
 
 ### Third is grouping based on PLMs which can generate numeric encoding of proteins.  (Look into PLM's).  
 
-### Construct a number of features using a personal approach, iFeature, and another one.  Once those three features are set, use trainingDataLabels to confirm.
+
+
+### DON NOTES: Now that features have been gotten based off of the sequence, I am going to implement a Convolutional Neural Network to process the bigram data,
+###            since its output is a matrix.  Seems convenient and fulfills the Deep Learning Req.  
+
+### Step 1: Format/Prep the data from the Bigram into a pandas dataframe in which the matrix of a sequence is stored along with its original label.  
+
+### Step 2: Program the CNN and then run the data through in order to classify it properly.  
+
+### Step 3: Output the raw data; use for prediction.  
+
+
