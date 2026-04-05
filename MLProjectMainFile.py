@@ -6,6 +6,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+from collections import Counter
+import sklearn
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 
 
 ####Get iFeature running in here.  
@@ -31,15 +34,14 @@ def fastaConverter(filename):
 
 ###Testing purposes only.  
 trainingData = fastaConverter('Train.fasta')
-print(trainingData)
+sequences = trainingData.sequence
+print(sequences)
 
 ### Import stuff/methods to extract features from the sequence data.
 
 ### 3 Different Groups of Features Required.  1 Deep Learning Architecture also Required (DeepAmp preferred).
 
 ### Could actually group into feature 'groups' and analyze different feature groups within the peptide to create a measure of whether they are poisonous or not.
-
-### 3 Groups of features as determined by the papers.  iFeature can be used.  Look into use.
 
 ### First goal will be to group based on physiochemical properties of Amino Acids.  Not sure how one would go about doing this.  
 
@@ -49,15 +51,81 @@ print(trainingData)
 ### so far, the first has been computed and loaded into a csv.  
 
 ### Create functions for getting AAC (Count of a given amino acid within the sequence and then divide it by the length of the sequence, do for all and output as a 
-### dict that can then be converted into a dataframe itself.  
+### dict that can then be converted into a dataframe itself.
+def getAAC(sequence,desiredColumns):
+    ##takes pandas dataframe as input and then outputs pandas dataframe.  Each column in the data frame is a letter
+    ### i indicates the row of the 20 sorted amino acids.  
+    seqList = list(sequence)
+    seqLen = len(sequence)
+    counts = Counter(seqList)  ##outputs as dict type.  Convert to tuples and sort by key.
 
+    ##normalize the data
+    counts = {key: count / seqLen for key, count in counts.items()}
+
+    ## puts the counts data into a new dataframe and reindexes by the desired columns. 
+    countsDF = pd.DataFrame([counts]).reindex(columns=desiredColumns)
+    countsDF = countsDF.fillna(0)
+
+    return countsDF
+
+    
 ### Ocurrence: piggyback off of AAC by just grabbing the pure counts of each; output on the side; count whether an amino acid from the library
-### is present using boolean variables.  All zeroes vector (use np.zeroes()), where it is a single row, each column is a separate amino acid.  
+### is present using boolean variables.  All zeroes vector (use np.zeroes()), where it is a single row, each column is a separate amino acid.
+def getOCC(sequence,desiredColumns):
+    occDict = {}
+    seqList = list(sequence)
+    
+    for aa in seqList:
+        if aa not in occDict:
+            occDict[aa]=1
+    ###now convert to a dataframe
+    occDF = pd.DataFrame([occDict]).reindex(columns=desiredColumns)
+    occDF = occDF.fillna(0).astype(int)
+    return occDF
+
 
 ### Bi-Gram: Get bi-gram or 2-gram sequences of each of the Amino Acids in the peptide, i.e. 2 character.  Can use count vectorizer in scikit learn for this, then count
-### and normalize the presence of each of the 2-grams within the sequence.  
+### and normalize the presence of each of the 2-grams within the sequence.
+def getBiGram(sequence,desiredColumns):
+    ###Get bi-grams present in sequence.
+    aas = 'ACDEFGHIKLMNPQRSTVWY'
+    
+    ##Gets all aas as a dictionary.  
+    aasDict = {aa: i for i, aa in enumerate(aas)}
+
+    ##list of all possible bigrams
+    retMatrix = np.zeros((20,20))
+
+    ### loop through in range of the sequence-1 (num of bigram pairs that can exist) and then increase the row, column value which is of the pair in the matrix by 1(for the sake of count)
+    ### total number of permutations given by the sequence.  seq is of length 28, zB, so the number of pairs is 27, as the number of bigrams is always L-1 for a set of chars L.
+    ### it grabs the row and column values, row being i and column being the next i to form a pair, which it then searches the value of in aas dict to get the row/column values for.  
+    for i in range(len(sequence)-1):
+        row = aasDict[sequence[i]]
+        column = aasDict[sequence[i+1]]
+        retMatrix[row,column]+=1
+
+    totalPairs =  len(sequence)-1      
+
+    ### Divide all vals of the retMatrix by the total pairs to normalize it.  
+    retMatrix = retMatrix/totalPairs
+
+    ##return matrix as a numpy dataframe with the labels intact.  
+    retDF = pd.DataFrame(retMatrix, columns = desiredColumns, index = desiredColumns)
+    return retDF
+
+
+allColumns = ['A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','Y']
+
+aacTest = getAAC(sequences.iloc[2], allColumns)
+print(aacTest)
+        
+occTest = getOCC(sequences.iloc[2],allColumns)
+print(occTest)
+
+
+bigramTest = getBiGram(sequences.iloc[2],allColumns)
+print(bigramTest)
 
 ### Third is grouping based on PLMs which can generate numeric encoding of proteins.  (Look into PLM's).  
 
 ### Construct a number of features using a personal approach, iFeature, and another one.  Once those three features are set, use trainingDataLabels to confirm.
-
