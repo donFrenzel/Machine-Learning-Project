@@ -35,7 +35,6 @@ def fastaConverter(filename):
 ###Testing purposes only.  
 trainingData = fastaConverter('Train.fasta')
 sequences = trainingData.sequence
-print(sequences)
 
 ### Import stuff/methods to extract features from the sequence data.
 
@@ -51,15 +50,13 @@ print(sequences)
 ### so far, the first has been computed and loaded into a csv.  
 
 ### Create functions for getting AAC (Count of a given amino acid within the sequence and then divide it by the length of the sequence, do for all and output as a 
-### dict that can then be converted into a dataframe itself.
+### dict that can then be converted into a dataframe itself.  Returns a dataframe where each column is the normalized count of each amino acid.  
 def getAAC(sequence,desiredColumns):
-    ##takes pandas dataframe as input and then outputs pandas dataframe.  Each column in the data frame is a letter
-    ### i indicates the row of the 20 sorted amino acids.  
     seqList = list(sequence)
     seqLen = len(sequence)
     counts = Counter(seqList)  ##outputs as dict type.  Convert to tuples and sort by key.
 
-    ##normalize the data
+    ##normalize the data and then make it a dict at the same time.  
     counts = {key: count / seqLen for key, count in counts.items()}
 
     ## puts the counts data into a new dataframe and reindexes by the desired columns. 
@@ -70,11 +67,12 @@ def getAAC(sequence,desiredColumns):
 
     
 ### Ocurrence: piggyback off of AAC by just grabbing the pure counts of each; output on the side; count whether an amino acid from the library
-### is present using boolean variables.  All zeroes vector (use np.zeroes()), where it is a single row, each column is a separate amino acid.
+### is present using boolean variables.  Returns a pandas dataframe where each column is an amino acid.  
 def getOCC(sequence,desiredColumns):
     occDict = {}
     seqList = list(sequence)
-    
+
+    ### does basic bucketing; if no bucket exists, creates a bucket, but only if in sequence.  Counts binary wise.  
     for aa in seqList:
         if aa not in occDict:
             occDict[aa]=1
@@ -85,7 +83,7 @@ def getOCC(sequence,desiredColumns):
 
 
 ### Bi-Gram: Get bi-gram or 2-gram sequences of each of the Amino Acids in the peptide, i.e. 2 character.  Can use count vectorizer in scikit learn for this, then count
-### and normalize the presence of each of the 2-grams within the sequence.
+### and normalize the presence of each of the 2-grams within the sequence.  Returns pandas dataframe that represents a matrix where each [i,j] is a bigram.  
 def getBiGram(sequence,desiredColumns):
     ###Get bi-grams present in sequence.
     aas = 'ACDEFGHIKLMNPQRSTVWY'
@@ -113,7 +111,7 @@ def getBiGram(sequence,desiredColumns):
     retDF = pd.DataFrame(retMatrix, columns = desiredColumns, index = desiredColumns)
     return retDF
 
-
+###KEEP THIS; NECESSARY as it is the basic, alphabetical order.  
 allColumns = ['A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','Y']
 
 aacTest = getAAC(sequences.iloc[2], allColumns)
