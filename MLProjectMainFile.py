@@ -10,9 +10,6 @@ from collections import Counter
 import sklearn
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 
-
-####Get iFeature running in here.  
-
 ###Alternatively, using biopython might be better, especially since fastaframes didn't separate the columns correctly.  
 from Bio import SeqIO
 
