@@ -92,7 +92,7 @@ def getOCC(sequence,desiredColumns):
 
 ### Bi-Gram: Get bi-gram or 2-gram sequences of each of the Amino Acids in the peptide, i.e. 2 character.  Can use count vectorizer in scikit learn for this, then count
 ### and normalize the presence of each of the 2-grams within the sequence.  Returns pandas dataframe that represents a matrix where each [i,j] is a bigram.  
-def getBiGram(sequence,desiredColumns):
+def getBigram(sequence,desiredColumns):
     ###Get bi-grams present in sequence.
     aas = 'ACDEFGHIKLMNPQRSTVWY'
     
@@ -112,33 +112,64 @@ def getBiGram(sequence,desiredColumns):
 
     totalPairs =  len(sequence)-1      
 
-    ### Divide all vals of the retMatrix by the total pairs to normalize it.  
+    ### Divide all vals of the retMatrix by the total pairs to normalize it.  Creates good nparray.  
     retMatrix = retMatrix/totalPairs
 
     ##return matrix as a numpy dataframe with the labels intact.  
-    retDF = pd.DataFrame(retMatrix, columns = desiredColumns, index = desiredColumns)
-    return retDF
+    #retDF = pd.DataFrame(retMatrix, columns = desiredColumns, index = desiredColumns)
+    return retMatrix
 
 #KEEP THIS; NECESSARY as it is the basic, alphabetical order.  
 allColumns = ['A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','Y']
-print(sequences.iloc[2])
-aacTest = getAAC(sequences.iloc[2], allColumns)
-print(aacTest)
+#print(sequences.iloc[2])
+#aacTest = getAAC(sequences.iloc[2], allColumns)
+#print(aacTest)
         
-occTest = getOCC(sequences.iloc[2],allColumns)
-print(occTest)
+#occTest = getOCC(sequences.iloc[2],allColumns)
+#print(occTest)
+
+#Bigrams returning now as nparrays.
+#bigramTest = getBigram(sequences.iloc[2],allColumns)
+#print(bigramTest)
+
+###Load in Data for CNN - LOADED EARLIER INTO trainingData & testingData vars, respectively.  Data Must be converted.  Menu might be good perhaps?
+def bigramSeqs(data, desiredColumns):
+    cSeqs = []
+    for seq in data.sequence:
+        #convSeq is returned as an nparray.
+        convSeq = getBigram(seq, desiredColumns)
+        ###works properly, at least returns.  
+        cSeqs.append(convSeq)
+    ###results in stack of size (n, m, m) for n mxm matrices, channel depth is implicit.  
+    result = np.stack(cSeqs,axis=0)
+
+    ###Adds the extra 1 dimension necessary for CNN to work.  
+    result = np.expand_dims(result, axis=-1) 
+    return result
+
+### Now, convert all sequences to biGramSeqs and then all labels to np vectors; make sure dimensions are good to work with tensorflow.  
+xTrain = bigramSeqs(trainingData, allColumns)
+xTest = bigramSeqs(testingData, allColumns)
+
+yTrain = (trainingData.label).to_numpy()
+yTrain = np.expand_dims(yTrain, axis=-1)
+
+yTest = (testingData.label).to_numpy()
+yTest = np.expand_dims(yTest,axis=-1)
 
 
-bigramTest = getBiGram(sequences.iloc[2],allColumns)
-print(bigramTest)
+### Expand dims to an extra 1 for yTrain and yTest.  
 
-###Load in Data for CNN
+###Testing only, proves data is of proper form
+print(type(xTrain))
+print(type(yTrain))
+print(type(xTest))
+print(type(yTest))
 
-xTrain = trainingData.sequence
-yTrain = trainingData.label
-
-xTest = testingData.sequence
-yTest = testingData.label
+print('xTrain shape: ',xTrain.shape)
+print('yTrain shape: ',yTrain.shape)
+print('xTest shape: ',xTest.shape)
+print('yTest shape: ',yTest.shape)
 
 ### Third is grouping based on PLMs which can generate numeric encoding of proteins.  (Look into PLM's).  
 
