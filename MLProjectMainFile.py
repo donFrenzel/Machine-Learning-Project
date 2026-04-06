@@ -1,14 +1,22 @@
-### Program for ML Project ###
-### Don Frenzel, Rohan Castillo, Lasaro Morell ###
+#---Program for ML Project---#
+#---Don Frenzel, Rohan Castillo, Lasaro Morell---#
+
+###NOTES FOR DON: Run on Python311.  Tensorflow only works until 3.13.  Should not be a problem otherwise
 
 ###Imports.  
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import os
 from collections import Counter
-import sklearn
-from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+
+###Imports for tensorflow/Deep Learning (used primarily for CNN)
+import tensorflow as tf
+from tensorflow import keras
+from keras.models import Sequential
+from keras.layers import Dense, Flatten, Conv2D, MaxPooling2D, Dropout
+from tensorflow.keras import layers
+from keras.utils import to_categorical
+plt.style.use('fivethirtyeight')
 
 ###Alternatively, using biopython might be better, especially since fastaframes didn't separate the columns correctly.  
 from Bio import SeqIO
@@ -29,17 +37,20 @@ def fastaConverter(filename):
     dataframe = pd.DataFrame(dataList)
     return dataframe
 
-###Testing purposes only.  
+###Load data in, training/testing.  Split later for validation.  
 trainingData = fastaConverter('Train.fasta')
+testingData = fastaConverter('test.fasta')
+
+###Testing purposes only.  
 sequences = trainingData.sequence
 
-### Import stuff/methods to extract features from the sequence data.
+## Import stuff/methods to extract features from the sequence data.
 
-### 3 Different Groups of Features Required.
+## 3 Different Groups of Features Required.
 
-### Could actually group into feature 'groups' and analyze different feature groups within the peptide to create a measure of whether they are poisonous or not.
+## Could actually group into feature 'groups' and analyze different feature groups within the peptide to create a measure of whether they are poisonous or not.
 
-### First goal will be to group based on physiochemical properties of Amino Acids.  Not sure how one would go about doing this.  [Rohan]
+## First goal will be to group based on physiochemical properties of Amino Acids.  Not sure how one would go about doing this.  [Rohan]
 
 ### Second is a group based on the alphabetical properties of the given peptides: Examples of such features are amino acid composition(AAC)(percentage of 
 ### each of standard 20 amino acids
@@ -108,9 +119,9 @@ def getBiGram(sequence,desiredColumns):
     retDF = pd.DataFrame(retMatrix, columns = desiredColumns, index = desiredColumns)
     return retDF
 
-###KEEP THIS; NECESSARY as it is the basic, alphabetical order.  
+#KEEP THIS; NECESSARY as it is the basic, alphabetical order.  
 allColumns = ['A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','Y']
-
+print(sequences.iloc[2])
 aacTest = getAAC(sequences.iloc[2], allColumns)
 print(aacTest)
         
@@ -121,17 +132,23 @@ print(occTest)
 bigramTest = getBiGram(sequences.iloc[2],allColumns)
 print(bigramTest)
 
-### Third is grouping based on PLMs which can generate numeric encoding of proteins.  (Look into PLM's).  
+###Load in Data for CNN
 
+xTrain = trainingData.sequence
+yTrain = trainingData.label
+
+xTest = testingData.sequence
+yTest = testingData.label
+
+### Third is grouping based on PLMs which can generate numeric encoding of proteins.  (Look into PLM's).  
 
 
 ### DON NOTES: Now that features have been gotten based off of the sequence, I am going to implement a Convolutional Neural Network to process the bigram data,
 ###            since its output is a matrix.  Seems convenient and fulfills the Deep Learning Req.  
 
-### Step 1: Format/Prep the data from the Bigram into a pandas dataframe in which the matrix of a sequence is stored along with its original label.  
+### Step 1: Format/Prep the data from the Bigram into a pandas dataframe in which the matrix of a sequence is stored along with its original labels.  Since we are testing
+###         whether they are poisonous or not.  Format labels to fit.  Will be using tensorflow for this.  
 
 ### Step 2: Program the CNN and then run the data through in order to classify it properly.  
 
 ### Step 3: Output the raw data; use for prediction.  
-
-
