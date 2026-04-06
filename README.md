@@ -171,20 +171,7 @@ classification = ['Nontoxic','Toxic']
 yTrain_oneHot = to_categorical(yTrain)
 yTest_oneHot = to_categorical(yTest)
 
-### since data is autonormalized, there's no need to renormalize it.  
-
-###Testing only, proves data is of proper form
-'''
-print(type(xTrain))
-print(type(yTrain))
-print(type(xTest))
-print(type(yTest))
-
-print('xTrain shape: ',xTrain.shape)
-print('yTrain shape: ',yTrain.shape)
-print('xTest shape: ',xTest.shape)
-print('yTest shape: ',yTest.shape)
-'''
+### since data is autonormalized by function, there's no need to renormalize it.  
 
 ### DON NOTES: Now that features have been gotten based off of the sequence, I am going to implement a Convolutional Neural Network to process the bigram data,
 ###            since its output is a matrix.  Seems convenient and fulfills the Deep Learning Req.  
@@ -202,33 +189,33 @@ model = Sequential()
 
 ###Create first layer
 model.add(layers.Input(shape=(20, 20, 1)))
-model.add(Conv2D(20,(5,5),activation='relu'))
+model.add(Conv2D(32,(3,3),activation='relu'))
 
 ###Create Pooling layer
-model.add(MaxPooling2D(pool_size=(2,2)))
+#model.add(MaxPooling2D(pool_size=(2,2)))
 
 ###Create second convolution layer
-model.add(Conv2D(20,(5,5),activation='relu'))
+model.add(Conv2D(32,(3,3),activation='relu'))
 
 ###Create Second Pooling Layer
-model.add(MaxPooling2D(pool_size=(2,2)))
+#model.add(MaxPooling2D(pool_size=(2,2)))
 
 ###Create Flattening Layer (reduces dimensionality to a linear array)
 model.add(Flatten())
 
 ###Create a layer with 500 neurons.
-model.add(Dense(500,activation='relu'))
+model.add(Dense(1000,activation='relu'))
 
 ###Create a dropout layer
 model.add(Dropout(0.5))
 
 ###Second layer of neurons
-model.add(Dense(250,activation='relu'))
+model.add(Dense(500,activation='relu'))
 
 ###
 model.add(Dropout(0.5))
 
-model.add(Dense(125,activation='relu'))
+model.add(Dense(250,activation='relu'))
 
 model.add(Dense(2,activation='softmax'))
 
@@ -250,10 +237,11 @@ print(testAcc)
 ###Accuracy Visualization of Convolutional Neural Network Model.  
 plt.plot(hist.history['accuracy'])
 plt.plot(hist.history['val_accuracy'])
+plt.axhline(y=testAcc, color='gold', linestyle='-')
 plt.title('Model Accuracy, CNN')
 plt.ylabel('Accuracy')
 plt.xlabel('Epoch')
-plt.legend(['Train','Val'],loc='upper left')
+plt.legend(['Train','Val','Test'],loc='upper left')
 plt.show()
 
 ###Test acc of model with a value:
