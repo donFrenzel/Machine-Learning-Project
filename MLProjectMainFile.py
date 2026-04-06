@@ -29,7 +29,7 @@ def fastaConverter(filename):
     with open(filename,"r") as handle:
         for entry in SeqIO.parse(handle, "fasta"):
              dataList.append({
-                    'label': entry.id[8],
+                    'label': int(entry.id[8]),
                     'sequence': str(entry.seq),
                     'length': len(entry.seq)})
         #figure out how to split the id into the boolean var and the word 'peptide'
@@ -40,6 +40,9 @@ def fastaConverter(filename):
 ###Load data in, training/testing.  Split later for validation.  
 trainingData = fastaConverter('Train.fasta')
 testingData = fastaConverter('test.fasta')
+
+###Important for functions, essentially acts as a library for amino acids.  
+allColumns = ['A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','Y']
 
 ###Testing purposes only.  
 sequences = trainingData.sequence
@@ -119,20 +122,8 @@ def getBigram(sequence,desiredColumns):
     #retDF = pd.DataFrame(retMatrix, columns = desiredColumns, index = desiredColumns)
     return retMatrix
 
-#KEEP THIS; NECESSARY as it is the basic, alphabetical order.  
-allColumns = ['A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','Y']
-#print(sequences.iloc[2])
-#aacTest = getAAC(sequences.iloc[2], allColumns)
-#print(aacTest)
-        
-#occTest = getOCC(sequences.iloc[2],allColumns)
-#print(occTest)
-
-#Bigrams returning now as nparrays.
-#bigramTest = getBigram(sequences.iloc[2],allColumns)
-#print(bigramTest)
-
 ###Load in Data for CNN - LOADED EARLIER INTO trainingData & testingData vars, respectively.  Data Must be converted.  Menu might be good perhaps?
+###Merge eventually with getBigram.  
 def bigramSeqs(data, desiredColumns):
     cSeqs = []
     for seq in data.sequence:
@@ -140,46 +131,121 @@ def bigramSeqs(data, desiredColumns):
         convSeq = getBigram(seq, desiredColumns)
         ###works properly, at least returns.  
         cSeqs.append(convSeq)
-    ###results in stack of size (n, m, m) for n mxm matrices, channel depth is implicit.  
+    ###results in stack of size (n, m, m) for n mxm matrices, channel depth must be explicit.  
     result = np.stack(cSeqs,axis=0)
 
     ###Adds the extra 1 dimension necessary for CNN to work.  
     result = np.expand_dims(result, axis=-1) 
     return result
 
-### Now, convert all sequences to biGramSeqs and then all labels to np vectors; make sure dimensions are good to work with tensorflow.  
-xTrain = bigramSeqs(trainingData, allColumns)
-xTest = bigramSeqs(testingData, allColumns)
-
-yTrain = (trainingData.label).to_numpy()
-yTrain = np.expand_dims(yTrain, axis=-1)
-
-yTest = (testingData.label).to_numpy()
-yTest = np.expand_dims(yTest,axis=-1)
-
-
-### Expand dims to an extra 1 for yTrain and yTest.  
-
-###Testing only, proves data is of proper form
-print(type(xTrain))
-print(type(yTrain))
-print(type(xTest))
-print(type(yTest))
-
-print('xTrain shape: ',xTrain.shape)
-print('yTrain shape: ',yTrain.shape)
-print('xTest shape: ',xTest.shape)
-print('yTest shape: ',yTest.shape)
-
 ### Third is grouping based on PLMs which can generate numeric encoding of proteins.  (Look into PLM's).  
 
 
-### DON NOTES: Now that features have been gotten based off of the sequence, I am going to implement a Convolutional Neural Network to process the bigram data,
-###            since its output is a matrix.  Seems convenient and fulfills the Deep Learning Req.  
+### CNN function takes input of training & testing data
+def CNN(trainingData, testingData):
+    ### Now, convert all sequences to biGramSeqs and then all labels to np vectors; make sure dimensions are good to work with tensorflow.  Since data is
+    ### autonormalized by function pipeline, there's no need to renormalize it.  
 
-### Step 1: Format/Prep the data from the Bigram into a pandas dataframe in which the matrix of a sequence is stored along with its original labels.  Since we are testing
-###         whether they are poisonous or not.  Format labels to fit.  Will be using tensorflow for this.  
+    xTrain = bigramSeqs(trainingData, allColumns)
+    xTest = bigramSeqs(testingData, allColumns)
 
-### Step 2: Program the CNN and then run the data through in order to classify it properly.  
+    yTrain = (trainingData.label).to_numpy()
+    yTrain = np.expand_dims(yTrain, axis=-1)#expands dim by 1 to represent channel depth
 
-### Step 3: Output the raw data; use for prediction.  
+    yTest = (testingData.label).to_numpy()
+    yTest = np.expand_dims(yTest,axis=-1)#expands dim by 1 to represent channel depth
+
+    ### convert labels into set of 2 nums for the neural net imput; basically [x,y] where each is a binary indicator of whether the class is present or not.  
+    yTrain_oneHot = to_categorical(yTrain)
+    yTest_oneHot = to_categorical(yTest)
+
+    ###CNN Implementation
+
+    model = Sequential()
+
+    ###Create first layer
+    model.add(layers.Input(shape=(20, 20, 1)))
+    model.add(Conv2D(32,(3,3),activation='relu'))
+
+    ###Create Pooling layer
+    #model.add(MaxPooling2D(pool_size=(2,2)))
+
+    ###Create second convolution layer
+    model.add(Conv2D(32,(3,3),activation='relu'))
+
+    ###Create Second Pooling Layer
+    #model.add(MaxPooling2D(pool_size=(2,2)))
+
+    ###Create Flattening Layer (reduces dimensionality to a linear array)
+    model.add(Flatten())
+
+    ###Create a layer with 500 neurons.
+    model.add(Dense(1000,activation='relu'))
+
+    ###Create a dropout layer
+    model.add(Dropout(0.5))
+
+    ###Second layer of neurons
+    model.add(Dense(500,activation='relu'))
+
+    ### New Dropout Layer
+    model.add(Dropout(0.5))
+
+    ### Third Layer of Neurons
+    model.add(Dense(250,activation='relu'))
+
+    ### Fourth Layer of Neurons (condense into two predictions)
+    model.add(Dense(2,activation='softmax'))
+
+    ###Compile the model
+    model.compile(loss = 'categorical_crossentropy',
+                  optimizer = 'adam',
+                  metrics = ['accuracy'])
+
+    ###train le model
+    hist = model.fit(xTrain,yTrain_oneHot,
+                     batch_size=256,
+                     epochs = 10,
+                     validation_split=0.2)
+
+
+    testAcc = model.evaluate(xTest, yTest_oneHot)[1]
+    print('\nAccuracy of Predictions with Test Data:',testAcc,'\n')
+    '''
+    ###Test acc of model with a value:
+    testPept = [['GEEELQENQELIRKSN']]
+    testPept = pd.DataFrame(testPept,columns=['sequence'])
+
+    testPeptReg = bigramSeqs(testPept, allColumns)
+
+    predictions = model.predict(testPeptReg)
+    print(predictions)
+    '''
+    ###classification array; pos 0 is label 0, pos 1 is label 1.  
+    classification = ['Nontoxic','Toxic']
+
+    ##For testing purposes only; picks one datapoinert and rolls with it.  
+    n = 5063
+    print(trainingData.sequence.iloc[n])
+    print(yTrain[n][0])
+    print('The peptide class is: ', classification[yTrain[n][0]])
+    print('The binary label is:',yTrain_oneHot[n])
+
+    ###Accuracy Visualization of Convolutional Neural Network Model.  
+    plt.plot(hist.history['accuracy'])
+    plt.plot(hist.history['val_accuracy'])
+    plt.axhline(y=testAcc, color='gold', linestyle='--')
+    plt.title('Model Accuracy, CNN')
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    plt.legend(['Train','Val','Test'],loc='lower right')
+    plt.show()
+
+###Create basic text interface:
+
+###Choice of feature Eval + brief explanation of each ML method before a confirmation.  Once confirmed, runs the method, then outputs the output of the function.
+### Idea is for it to be a user menu; mostly for demo use during presentation of the project.  
+
+
+
+CNN(trainingData,testingData)
