@@ -9,14 +9,79 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import Counter
 
-###Imports for tensorflow/Deep Learning (used primarily for CNN)
-import tensorflow as tf
-from tensorflow import keras
-from keras.models import Sequential
-from keras.layers import Dense, Flatten, Conv2D, MaxPooling2D, Dropout
-from tensorflow.keras import layers
-from keras.utils import to_categorical
 plt.style.use('fivethirtyeight')
+
+###Convolutional Neural Network Imports PyTorch
+import torch
+import torchvision
+import torchvision.transforms as transforms
+from torch.utils.data import TensorDataset, DataLoader
+
+import torch.nn as nn
+import torch.nn.functional as F
+
+import torch.optim as optim
+
+###Define Neural network Class
+class convNeuralNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        ###define first convolution, initial input layer is 1.  3 by 3 windows.  256 Filters.s
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3)
+
+        ###Pooling layer: 
+        self.pool1 = nn.MaxPool2d(2,2)
+
+        ###Second convolutional layer and pooling layer.  
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3)
+        #self.pool2 = nn.MaxPool2d(2,2)
+
+        #self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=2)
+        #self.pool3 = nn.MaxPool2d(2,2)
+
+        self.flatten = nn.Flatten()
+
+        self.dropout = nn.Dropout(p=0.3)
+
+        self.fc1 = nn.Linear(in_features=2048, out_features=1000)
+        self.fc2 = nn.Linear(in_features=1000, out_features=500)
+        self.fc3 = nn.Linear(in_features=500, out_features=250)
+
+        ###Add linear output layer; needs to end in 2 values.  
+        self.out = nn.Linear(in_features=250, out_features=2)
+
+    ###Forward Pass makes sure that it can go through
+    def forward(self, x):
+        x = F.relu(self.conv1(x))##runs x, img batch through first convolution.
+
+        x = F.relu(self.conv2(x))##runs x, img batch through first convolution.
+
+        x = self.pool1(x)
+
+        #x = self.pool2(x)
+
+        #x = F.relu(self.conv3(x))##runs x, img batch through first convolution.
+        #x = self.pool3(x)
+        
+        x = self.flatten(x)
+
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+
+        x = F.relu(self.fc2(x))
+        x = self.dropout(x)
+
+        x = F.relu(self.fc3(x))
+        x = self.dropout(x)
+
+        x = self.out(x)
+        return x
+
+
+###Set device to GPU if possible but make sure it can be set to CPU if need be
+device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+print('Running on: ',device)
 
 ###Alternatively, using biopython might be better, especially since fastaframes didn't separate the columns correctly.  
 from Bio import SeqIO
@@ -140,12 +205,44 @@ def bigramSeqs(data, desiredColumns):
 
 ### Third is grouping based on PLMs which can generate numeric encoding of proteins.  (Look into PLM's).  
 
+def trainSingleEpoch():
+    net.train(True) #set training mode
+    running_loss = 0.0
+    running_accuracy = 0.0
 
-### CNN function takes input of training & testing data
+    #iterate over dataloader
+    for batch_index, data in enumerate(trainLoader):
+        inputs, labels = data[0].to(device), data[1].to(device)
+
+        optimizer.zero_grad() #reset gradients.
+
+        outputs = net(inputs) #shape: [batch_size, 2] grab highest value and look at index
+        correct = torch.sum(labels == torch.argmax(outputs, dim=1)).item()
+        running_accuracy += correct/batch_size
+
+        loss = criterion(outputs, labels) ##utilizes loss function
+        running_loss += loss.item()
+        loss.backward() #backpropagates to learn model and then takes an optimizer's step
+        optimizer.step()
+
+        if batch_index % 200 == 199:
+            avgLossOverBatches = running_loss/200
+            avgAccOverBatches = (running_accuracy/200)*100
+            print(f'Batch {batch_index+1}, Loss: {avgLossOverBatches:.3f}, Accuracy: {avgAccOverBatches:.1f}%')
+
+            #reset running accuracy and loss back to zero for start of next iteration
+            running_accuracy = 0.0
+            running_loss = 0.0
+    print()
+
+
+### CNN function takes input of training & testing data rewritten in Pytorch:
 def CNN(trainingData, testingData):
     ### Now, convert all sequences to biGramSeqs and then all labels to np vectors; make sure dimensions are good to work with tensorflow.  Since data is
     ### autonormalized by function pipeline, there's no need to renormalize it.  
-
+    classification = ['Nontoxic','Toxic']
+    batchSize = 8
+    
     xTrain = bigramSeqs(trainingData, allColumns)
     xTest = bigramSeqs(testingData, allColumns)
 
@@ -155,95 +252,143 @@ def CNN(trainingData, testingData):
     yTest = (testingData.label).to_numpy()
     yTest = np.expand_dims(yTest,axis=-1)#expands dim by 1 to represent channel depth
 
-    ### convert labels into set of 2 nums for the neural net imput; basically [x,y] where each is a binary indicator of whether the class is present or not.  
-    yTrain_oneHot = to_categorical(yTrain)
-    yTest_oneHot = to_categorical(yTest)
+    ###run ToTensor on all of these.
+    #print(len(xTrain))
+    #print(len(xTest))
+    #print(xTrain[5062], yTrain[5062])
 
-    ###CNN Implementation
+    ###Need to pair training and test with their labels.
+    ###convert to tensors.
+    xTrainTensor =torch.from_numpy(xTrain)
+    yTrainTensor = torch.from_numpy(yTrain)
+    xTestTensor = torch.from_numpy(xTest)
+    yTestTensor = torch.from_numpy(yTest)
 
-    model = Sequential()
+    trainSet = TensorDataset(xTrainTensor, yTrainTensor)
+    testSet = TensorDataset(xTestTensor, yTestTensor)
+    
+    #print("Matrix", trainSet[0][0], "\nLabels", trainSet[0][1]) #WORKS PROPERLY
 
-    ###Create first layer
-    model.add(layers.Input(shape=(20, 20, 1)))
-    model.add(Conv2D(32,(3,3),activation='relu'))
+    
+    ###Split training set into training and validation.  Make validation roughly same amount in training data as test data.  1126/6387 or ~17.6%
+    trainSet, valSet = torch.utils.data.random_split(trainSet, [5261, 1126])
+    #print("Num, batches in trainingSet: ", int(5261/batchSize)) ##Will run in 657 batches total.  NOTE: Batches help with splitting should it run on a GPU instead.  
+    #print("Num, batches in validationSet: ", int(1126/batchSize))##Will run in 140 batches total.
 
-    ###Create Pooling layer
-    #model.add(MaxPooling2D(pool_size=(2,2)))
+    ###Loaders load the data into proper datasets for the neural network to learn off of.  
+    trainLoader = torch.utils.data.DataLoader(trainSet, batch_size = batchSize, shuffle = True, num_workers = 0)
+    valLoader = torch.utils.data.DataLoader(valSet, batch_size = batchSize, shuffle = True, num_workers = 0)
+    testLoader = torch.utils.data.DataLoader(xTest, batch_size = batchSize, shuffle = True, num_workers = 0)
+    
+    net = convNeuralNet()
+    print(net.to(device))
 
-    ###Create second convolution layer
-    model.add(Conv2D(32,(3,3),activation='relu'))
-
-    ###Create Second Pooling Layer
-    #model.add(MaxPooling2D(pool_size=(2,2)))
-
-    ###Create Flattening Layer (reduces dimensionality to a linear array)
-    model.add(Flatten())
-
-    ###Create a layer with 500 neurons.
-    model.add(Dense(1000,activation='relu'))
-
-    ###Create a dropout layer
-    model.add(Dropout(0.5))
-
-    ###Second layer of neurons
-    model.add(Dense(500,activation='relu'))
-
-    ### New Dropout Layer
-    model.add(Dropout(0.5))
-
-    ### Third Layer of Neurons
-    model.add(Dense(250,activation='relu'))
-
-    ### Fourth Layer of Neurons (condense into two predictions)
-    model.add(Dense(2,activation='softmax'))
-
-    ###Compile the model
-    model.compile(loss = 'categorical_crossentropy',
-                  optimizer = 'adam',
-                  metrics = ['accuracy'])
-
-    ###train le model
-    hist = model.fit(xTrain,yTrain_oneHot,
-                     batch_size=256,
-                     epochs = 10,
-                     validation_split=0.2)
+    ###Loads training data and labels into the model.  Shows training info.  
+    for i, data in enumerate(trainLoader):
+        inputs, labels = data[0].to(device),data[1].to(device)
+        ###Needed to change order due to issues; pyTorch expects order [batch, channels, height, width] and I have [Batch, Height, width, channels].
+        ###Additionally, was processed as double so converted to float. 
+        inputs = inputs.permute(0, 3, 1, 2).float()  
+        print(f'input shape: {inputs.shape}')
+        print(f'after network shape: {net(inputs).shape}')
+        break
 
 
-    testAcc = model.evaluate(xTest, yTest_oneHot)[1]
-    print('\nAccuracy of Predictions with Test Data:',testAcc,'\n')
-    '''
-    ###Test acc of model with a value:
-    testPept = [['GEEELQENQELIRKSN']]
-    testPept = pd.DataFrame(testPept,columns=['sequence'])
+    ###Def loss function and optimizer.  
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(net.parameters(), lr=0.0001)
 
-    testPeptReg = bigramSeqs(testPept, allColumns)
+    ###Training loop:
+    epochs = 10
 
-    predictions = model.predict(testPeptReg)
-    print(predictions)
-    '''
-    ###classification array; pos 0 is label 0, pos 1 is label 1.  
-    classification = ['Nontoxic','Toxic']
+    ###Track Accuracy and Loss over epochs
+    accVOverEpochs = []
+    accTOverEpochs = []
+    for epochIndex in range(epochs):
+        print("Epoch :",epochIndex+1)
 
-    ##For testing purposes only; picks one datapoinert and rolls with it.  
-    n = 5063
-    print(trainingData.sequence.iloc[n])
-    print(yTrain[n][0])
-    print('The peptide class is: ', classification[yTrain[n][0]])
-    print('The binary label is:',yTrain_oneHot[n])
 
-    ###Accuracy Visualization of Convolutional Neural Network Model.  
-    plt.plot(hist.history['accuracy'])
-    plt.plot(hist.history['val_accuracy'])
-    plt.axhline(y=testAcc, color='gold', linestyle='--')
+        net.train(True) #set training mode
+        running_loss = 0.0
+        running_accuracy = 0.0
+        avgAccTOverEpoch = []
+
+        #iterate over dataloader to train the data in the epoch.
+        for batch_index, data in enumerate(trainLoader):
+            inputs, labels = data[0].to(device), data[1].to(device)
+            inputs = inputs.permute(0, 3, 1, 2).float()
+            labels = labels.squeeze() # Removes dimensions of size 1
+
+            optimizer.zero_grad() #reset gradients.
+
+            outputs = net(inputs) #shape: [batch_size, 2] grab highest value and look at index
+            correct = torch.sum(labels == torch.argmax(outputs, dim=1)).item()
+            running_accuracy += correct/batchSize
+
+            loss = criterion(outputs, labels) ##utilizes loss function
+            running_loss += loss.item()
+            loss.backward() #backpropagates to learn model and then takes an optimizer's step
+            optimizer.step()
+            
+            if batch_index % 200 == 199:
+                avgLossOverBatches = running_loss/200
+                avgAccOverBatches = (running_accuracy/200)*100
+                print(f'Batch {batch_index+1}, Loss: {avgLossOverBatches:.3f}, Accuracy: {avgAccOverBatches:.1f}%')
+                avgAccTOverEpoch.append(avgAccOverBatches)
+                #print(avgAccTOverEpoch)
+                #reset running accuracy and loss back to zero for start of next batch
+                running_accuracy = 0.0
+                running_loss = 0.0
+
+        accTAvg = sum(avgAccTOverEpoch)/len(avgAccTOverEpoch)
+        accTOverEpochs.append(accTAvg)
+            
+        print()
+
+        ###Validation step:
+        net.train(False) #disable training
+        runningLossV = 0.0
+        runningAccuracyV = 0.0
+
+        for i, data in enumerate(valLoader):
+            inputsV, labelsV = data[0].to(device), data[1].to(device)
+            inputsV = inputsV.permute(0, 3, 1, 2).float()
+            labelsV = labelsV.squeeze()
+
+            with torch.no_grad():
+                outputsV = net(inputsV)
+                correctV = torch.sum(labelsV == torch.argmax(outputsV, dim=1)).item()
+                runningAccuracyV += correctV/batchSize
+                lossV = criterion(outputsV, labelsV)
+                runningLossV = lossV.item()
+                
+        avgLossVOverBatches = runningLossV/len(valLoader)
+        avgAccVOverBatches = (runningAccuracyV/len(valLoader))*100
+
+        ###append data 3 times to match the batch data
+        accVOverEpochs.append(avgAccVOverBatches)
+
+        print(f'Validation Loss: {avgLossVOverBatches:.3f}, Validation Accuracy: {avgAccVOverBatches:.1f}%')
+
+
+        print('*****************************************************')
+        print()
+        
+    
+    print("TRAINING COMPLETE!!!")
+
+    ###Now that it's done, you can grab the data from the epochs and plot them like before:
+    plt.plot(accTOverEpochs)
+    plt.plot(accVOverEpochs)
+    #plt.axhline(y=testAcc, color='gold', linestyle='--')
     plt.title('Model Accuracy, CNN')
-    plt.ylabel('Accuracy')
-    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy [%]')
+    plt.xlabel('Epochs')
     plt.legend(['Train','Val','Test'],loc='lower right')
     plt.show()
-
 ###Create basic text interface:
 
-###Choice of feature Eval + brief explanation of each ML method before a confirmation.  Once confirmed, runs the method, then outputs the output of the function.
+###Choice of feature Eval + brief explanation of each ML method before a confirmation.  Once "confirmed, runs the method, then outputs the output of the function.
 ### Idea is for it to be a user menu; mostly for demo use during presentation of the project.  
 
 
