@@ -44,19 +44,19 @@ class convNeuralNet(nn.Module):
 
         self.dropout_spatial = nn.Dropout(0.2)
 
-        self.bn_fc1 = nn.BatchNorm1d(512)
         self.fc1 = nn.Linear(128 * 10 * 10, 512)
+
         self.bn_fc1 = nn.BatchNorm1d(512)
         
         self.fc2 = nn.Linear(512, 128)
         ###Add linear output layer; needs to end in 2 values.
-        self.dropout = nn.Dropout(p=0.4)
+        self.dropout = nn.Dropout(p=0.5)
 
         self.out = nn.Linear(in_features=128, out_features=2)
 
     ###Forward Pass makes sure that it can go through
     def forward(self, x):
-        x = F.relu(self.conv1(x))##runs x, img batch through first convolution.
+        x = F.relu(self.bn1(self.conv1(x)))##runs x, img batch through first convolution.
         x = self.pool1(F.relu(self.bn2(self.conv2(x))))
         x = self.dropout_spatial(x)
 
