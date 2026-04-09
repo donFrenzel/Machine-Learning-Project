@@ -30,53 +30,55 @@ class convNeuralNet(nn.Module):
         super().__init__()
 
         ###define first convolution, initial input layer is 1.  3 by 3 windows.  256 Filters.s
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3)
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=64, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm1d(64)
 
+        ###Second convolutional layer and pooling layer.  
+        self.conv2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
+        #self.pool2 = nn.MaxPool2d(2,2)
+        self.bn2 = nn.BatchNorm2d(128)
         ###Pooling layer: 
         self.pool1 = nn.MaxPool2d(2,2)
 
-        ###Second convolutional layer and pooling layer.  
-        self.conv2 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3)
-        #self.pool2 = nn.MaxPool2d(2,2)
+        #self.flatten = nn.Flatten()
 
-        #self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=2)
-        #self.pool3 = nn.MaxPool2d(2,2)
+        self.dropout_spatial = nn.Dropout(0.2)
 
-        self.flatten = nn.Flatten()
+        self.bn_fc1 = nn.BatchNorm1d(512)
+        self.fc1 = nn.Linear(128 * 10 * 10, 512)
+        self.bn_fc1 = nn.BatchNorm1d(512)
+        
+        self.fc2 = nn.Linear(512, 128)
+        ###Add linear output layer; needs to end in 2 values.
+        self.dropout = nn.Dropout(p=0.4)
 
-        self.dropout = nn.Dropout(p=0.3)
-
-        self.fc1 = nn.Linear(in_features=2048, out_features=1000)
-        self.fc2 = nn.Linear(in_features=1000, out_features=500)
-        self.fc3 = nn.Linear(in_features=500, out_features=250)
-
-        ###Add linear output layer; needs to end in 2 values.  
-        self.out = nn.Linear(in_features=250, out_features=2)
+        self.out = nn.Linear(in_features=128, out_features=2)
 
     ###Forward Pass makes sure that it can go through
     def forward(self, x):
         x = F.relu(self.conv1(x))##runs x, img batch through first convolution.
+        x = self.pool1(F.relu(self.bn2(self.conv2(x))))
+        x = self.dropout_spatial(x)
 
-        x = F.relu(self.conv2(x))##runs x, img batch through first convolution.
 
-        x = self.pool1(x)
-
-        #x = self.pool2(x)
-
+        x = torch.flatten(x, 1)
         #x = F.relu(self.conv3(x))##runs x, img batch through first convolution.
         #x = self.pool3(x)
-        
+        '''
         x = self.flatten(x)
 
-        x = F.relu(self.fc1(x))
+        x = F.relu(self.bn1((self.fc1(x)))
         x = self.dropout(x)
 
+        x = F.relu(self.bn2(self.fc2(x)))
+        x = self.dropout(x)
+
+        x = F.relu(self.bn3(self.fc3(x)))
+        x = self.dropout(x)
+        '''
+        x = F.relu(self.bn_fc1(self.fc1(x)))
+        x = self.dropout(x)
         x = F.relu(self.fc2(x))
-        x = self.dropout(x)
-
-        x = F.relu(self.fc3(x))
-        x = self.dropout(x)
-
         x = self.out(x)
         return x
 
@@ -269,9 +271,10 @@ def CNN(trainingData, testingData):
     ###Def loss function and optimizer.  Using Cross-Entropy Loss and Adam optimization. 
     criterion = nn.CrossEntropyLoss()  
     optimizer = optim.Adam(net.parameters(), lr=0.0001)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
 
     ###Training loop:
-    epochs = 10
+    epochs = 20
 
     ###Track Accuracy and Loss over epochs
     accVOverEpochs = []
@@ -339,6 +342,7 @@ def CNN(trainingData, testingData):
 
         ###append data 3 times to match the batch data
         accVOverEpochs.append(avgAccVOverBatches)
+        scheduler.step() ##advance the scheduler
 
         print(f'Validation Loss: {avgLossVOverBatches:.3f}, Validation Accuracy: {avgAccVOverBatches:.1f}%')
 
