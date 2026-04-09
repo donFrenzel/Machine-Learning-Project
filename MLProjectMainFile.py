@@ -207,36 +207,6 @@ def bigramSeqs(data, desiredColumns):
 
 ### Third is grouping based on PLMs which can generate numeric encoding of proteins.  (Look into PLM's).  
 
-def trainSingleEpoch():
-    net.train(True) #set training mode
-    running_loss = 0.0
-    running_accuracy = 0.0
-
-    #iterate over dataloader
-    for batch_index, data in enumerate(trainLoader):
-        inputs, labels = data[0].to(device), data[1].to(device)
-
-        optimizer.zero_grad() #reset gradients.
-
-        outputs = net(inputs) #shape: [batch_size, 2] grab highest value and look at index
-        correct = torch.sum(labels == torch.argmax(outputs, dim=1)).item()
-        running_accuracy += correct/batch_size
-
-        loss = criterion(outputs, labels) ##utilizes loss function
-        running_loss += loss.item()
-        loss.backward() #backpropagates to learn model and then takes an optimizer's step
-        optimizer.step()
-
-        if batch_index % 200 == 199:
-            avgLossOverBatches = running_loss/200
-            avgAccOverBatches = (running_accuracy/200)*100
-            print(f'Batch {batch_index+1}, Loss: {avgLossOverBatches:.3f}, Accuracy: {avgAccOverBatches:.1f}%')
-
-            #reset running accuracy and loss back to zero for start of next iteration
-            running_accuracy = 0.0
-            running_loss = 0.0
-    print()
-
 
 ### CNN function takes input of training & testing data rewritten in Pytorch:
 def CNN(trainingData, testingData):
@@ -296,8 +266,8 @@ def CNN(trainingData, testingData):
         break
 
 
-    ###Def loss function and optimizer.  
-    criterion = nn.CrossEntropyLoss()
+    ###Def loss function and optimizer.  Using Cross-Entropy Loss and Adam optimization. 
+    criterion = nn.CrossEntropyLoss()  
     optimizer = optim.Adam(net.parameters(), lr=0.0001)
 
     ###Training loop:
@@ -347,7 +317,7 @@ def CNN(trainingData, testingData):
             
         print()
 
-        ###Validation step:
+        ###Validation step:  Very similar to training data
         net.train(False) #disable training
         runningLossV = 0.0
         runningAccuracyV = 0.0
