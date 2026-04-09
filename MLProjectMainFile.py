@@ -270,7 +270,7 @@ def CNN(trainingData, testingData):
 
     ###Def loss function and optimizer.  Using Cross-Entropy Loss and Adam optimization. 
     criterion = nn.CrossEntropyLoss()  
-    optimizer = optim.Adam(net.parameters(), lr=0.0001)
+    optimizer = optim.Adam(net.parameters(), lr=0.0001, weight_decay=1e-4)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
 
     ###Training loop:
