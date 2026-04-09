@@ -7,7 +7,9 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import itertools
 from collections import Counter
+
 
 plt.style.use('fivethirtyeight')
 
@@ -268,7 +270,7 @@ def CNN(trainingData, testingData):
     testSet = TensorDataset(xTestTensor, yTestTensor)
     
     #print("Matrix", trainSet[0][0], "\nLabels", trainSet[0][1]) #WORKS PROPERLY
-
+    print("Matrix", testSet[0][0], "\nLabels", testSet[0][1])
     
     ###Split training set into training and validation.  Make validation roughly same amount in training data as test data.  1126/6387 or ~17.6%
     trainSet, valSet = torch.utils.data.random_split(trainSet, [5261, 1126])
@@ -278,7 +280,7 @@ def CNN(trainingData, testingData):
     ###Loaders load the data into proper datasets for the neural network to learn off of.  
     trainLoader = torch.utils.data.DataLoader(trainSet, batch_size = batchSize, shuffle = True, num_workers = 0)
     valLoader = torch.utils.data.DataLoader(valSet, batch_size = batchSize, shuffle = True, num_workers = 0)
-    testLoader = torch.utils.data.DataLoader(xTest, batch_size = batchSize, shuffle = True, num_workers = 0)
+    testLoader = torch.utils.data.DataLoader(testSet, batch_size = batchSize, shuffle = True, num_workers = 0)
     
     net = convNeuralNet()
     print(net.to(device))
@@ -377,10 +379,38 @@ def CNN(trainingData, testingData):
     
     print("TRAINING COMPLETE!!!")
 
+    print("BEGIN TESTING\n")
+
+    ###Start testing; gets number of correct classifications and total classifications
+    correct = 0
+    total = 0
+    # since we're not training, we don't need to calculate the gradients for our outputs
+    with torch.no_grad():
+        for i, data in enumerate(testLoader):
+            seq, labels = data[0],data[1]
+            seq = seq.permute(0, 3, 1, 2).float() 
+            # calculate outputs by running images through the network
+            outputs = net(seq)
+            # the class with the highest energy is what we choose as prediction
+            _, predicted = torch.max(outputs, 1)
+            total += labels.size(0)
+            correct += (predicted.flatten() == labels.flatten()).sum().item()
+
+    testAcc = 100* correct // total
+
+    ###Test prints 
+    print(f"Final Correct: {correct}")
+    print(f"Final Total: {total}")
+    print(f"Label Shape: {labels.shape}")
+    print(f"Predicted Shape: {predicted.shape}")
+
+    ###Prints total accuracy that will be present later on graph.  
+    print(f'Accuracy of the network on the test set: {testAcc} %')
     ###Now that it's done, you can grab the data from the epochs and plot them like before:
+
     plt.plot(accTOverEpochs)
     plt.plot(accVOverEpochs)
-    #plt.axhline(y=testAcc, color='gold', linestyle='--')
+    plt.axhline(y=testAcc, color='gold', linestyle='--')
     plt.title('Model Accuracy, CNN')
     plt.ylabel('Accuracy [%]')
     plt.xlabel('Epochs')
