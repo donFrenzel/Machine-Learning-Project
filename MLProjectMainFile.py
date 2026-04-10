@@ -31,18 +31,17 @@ class convNeuralNet(nn.Module):
 
         ###define first convolution, initial input layer is 1.  3 by 3 windows.  256 Filters.s
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=64, kernel_size=3, padding=1)
-        self.bn1 = nn.BatchNorm1d(64)
-
-        ###Second convolutional layer and pooling layer.  
+        ###Batch normalization recenters and rescales data
+        self.bn1 = nn.BatchNorm2d(64)
+        ###Second convolutional layer.   
         self.conv2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
-        #self.pool2 = nn.MaxPool2d(2,2)
         self.bn2 = nn.BatchNorm2d(128)
         ###Pooling layer: 
         self.pool1 = nn.MaxPool2d(2,2)
 
         #self.flatten = nn.Flatten()
 
-        self.dropout_spatial = nn.Dropout(0.2)
+        self.dropout_spatial = nn.Dropout2d(0.2)
 
         self.fc1 = nn.Linear(128 * 10 * 10, 512)
 
@@ -60,22 +59,8 @@ class convNeuralNet(nn.Module):
         x = self.pool1(F.relu(self.bn2(self.conv2(x))))
         x = self.dropout_spatial(x)
 
-
         x = torch.flatten(x, 1)
-        #x = F.relu(self.conv3(x))##runs x, img batch through first convolution.
-        #x = self.pool3(x)
-        '''
-        x = self.flatten(x)
 
-        x = F.relu(self.bn1((self.fc1(x)))
-        x = self.dropout(x)
-
-        x = F.relu(self.bn2(self.fc2(x)))
-        x = self.dropout(x)
-
-        x = F.relu(self.bn3(self.fc3(x)))
-        x = self.dropout(x)
-        '''
         x = F.relu(self.bn_fc1(self.fc1(x)))
         x = self.dropout(x)
         x = F.relu(self.fc2(x))
@@ -245,7 +230,7 @@ def CNN(trainingData, testingData):
     print("Matrix", testSet[0][0], "\nLabels", testSet[0][1])
     
     ###Split training set into training and validation.  Make validation roughly same amount in training data as test data.  1126/6387 or ~17.6%
-    trainSet, valSet = torch.utils.data.random_split(trainSet, [5261, 1126])
+    trainSet, valSet = torch.utils.data.random_split(trainSet, [5110, 1277])
     #print("Num, batches in trainingSet: ", int(5261/batchSize)) ##Will run in 657 batches total.  NOTE: Batches help with splitting should it run on a GPU instead.  
     #print("Num, batches in validationSet: ", int(1126/batchSize))##Will run in 140 batches total.
 
@@ -269,12 +254,12 @@ def CNN(trainingData, testingData):
 
 
     ###Def loss function and optimizer.  Using Cross-Entropy Loss and Adam optimization. 
-    criterion = nn.CrossEntropyLoss()  
+    criterion = nn.CrossEntropyLoss(label_smoothing=0.1)  
     optimizer = optim.Adam(net.parameters(), lr=0.0001, weight_decay=1e-4)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
 
     ###Training loop:
-    epochs = 20
+    epochs = 10
 
     ###Track Accuracy and Loss over epochs
     accVOverEpochs = []
@@ -287,13 +272,15 @@ def CNN(trainingData, testingData):
         running_loss = 0.0
         running_accuracy = 0.0
         avgAccTOverEpoch = []
+        epochTotal = 0
+        
 
         #iterate over dataloader to train the data in the epoch.
         for batch_index, data in enumerate(trainLoader):
             inputs, labels = data[0].to(device), data[1].to(device)
             inputs = inputs.permute(0, 3, 1, 2).float()
-            labels = labels.squeeze() # Removes dimensions of size 1
-
+            labels = labels.view(-1).long() # Ensures proper shape to avoid error. 
+            
             optimizer.zero_grad() #reset gradients.
 
             outputs = net(inputs) #shape: [batch_size, 2] grab highest value and look at index
@@ -304,6 +291,8 @@ def CNN(trainingData, testingData):
             running_loss += loss.item()
             loss.backward() #backpropagates to learn model and then takes an optimizer's step
             optimizer.step()
+
+            epochTotal += labels.size(0)
             
             if batch_index % 200 == 199:
                 avgLossOverBatches = running_loss/200
@@ -315,6 +304,7 @@ def CNN(trainingData, testingData):
                 running_accuracy = 0.0
                 running_loss = 0.0
 
+        #accTAvg = (correct / 200) * 100
         accTAvg = sum(avgAccTOverEpoch)/len(avgAccTOverEpoch)
         accTOverEpochs.append(accTAvg)
             
@@ -328,7 +318,7 @@ def CNN(trainingData, testingData):
         for i, data in enumerate(valLoader):
             inputsV, labelsV = data[0].to(device), data[1].to(device)
             inputsV = inputsV.permute(0, 3, 1, 2).float()
-            labelsV = labelsV.squeeze()
+            labelsV = labelsV.view(-1).long() 
 
             with torch.no_grad():
                 outputsV = net(inputsV)
