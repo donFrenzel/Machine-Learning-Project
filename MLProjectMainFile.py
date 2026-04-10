@@ -10,18 +10,13 @@ import matplotlib.pyplot as plt
 import itertools
 from collections import Counter
 
-
-plt.style.use('fivethirtyeight')
-
 ###Convolutional Neural Network Imports PyTorch
 import torch
 import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import TensorDataset, DataLoader
-
 import torch.nn as nn
 import torch.nn.functional as F
-
 import torch.optim as optim
 
 ###Define Neural network Class
@@ -33,32 +28,35 @@ class convNeuralNet(nn.Module):
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=64, kernel_size=3, padding=1)
         ###Batch normalization recenters and rescales data
         self.bn1 = nn.BatchNorm2d(64)
-        ###Second convolutional layer.   
+        ###Second convolutional layer.  128 Filters from 64
         self.conv2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
         self.bn2 = nn.BatchNorm2d(128)
-        ###Pooling layer: 
+        ###Pooling layer, pools into several pooled maps.  
         self.pool1 = nn.MaxPool2d(2,2)
 
-        #self.flatten = nn.Flatten()
-
+        ###Dropout basically is the chance that any given value will be dropped out of the data.  
         self.dropout_spatial = nn.Dropout2d(0.2)
 
+        ### Linear Layer; linears are fully connected and perform final classification
         self.fc1 = nn.Linear(128 * 10 * 10, 512)
-
+        ###Batch normalization
         self.bn_fc1 = nn.BatchNorm1d(512)
-        
+        ### Second linear layer.  
         self.fc2 = nn.Linear(512, 128)
-        ###Add linear output layer; needs to end in 2 values.
+
+        ###Larger dropout before output.  
         self.dropout = nn.Dropout(p=0.5)
 
+        ###Add linear output layer; needs to end in 2 values.
         self.out = nn.Linear(in_features=128, out_features=2)
 
     ###Forward Pass makes sure that it can go through
     def forward(self, x):
         x = F.relu(self.bn1(self.conv1(x)))##runs x, img batch through first convolution.
-        x = self.pool1(F.relu(self.bn2(self.conv2(x))))
+        x = self.pool1(F.relu(self.bn2(self.conv2(x)))) ###'' second convolution
         x = self.dropout_spatial(x)
 
+        ###Flattening layer; basically takes the whole thing and just makes it a singular 1 dimensional for compatibility with the full 
         x = torch.flatten(x, 1)
 
         x = F.relu(self.bn_fc1(self.fc1(x)))
@@ -211,11 +209,6 @@ def CNN(trainingData, testingData):
     yTest = (testingData.label).to_numpy()
     yTest = np.expand_dims(yTest,axis=-1)#expands dim by 1 to represent channel depth
 
-    ###run ToTensor on all of these.
-    #print(len(xTrain))
-    #print(len(xTest))
-    #print(xTrain[5062], yTrain[5062])
-
     ###Need to pair training and test with their labels.
     ###convert to tensors.
     xTrainTensor =torch.from_numpy(xTrain)
@@ -223,116 +216,114 @@ def CNN(trainingData, testingData):
     xTestTensor = torch.from_numpy(xTest)
     yTestTensor = torch.from_numpy(yTest)
 
+    ###Creates the training and test Set
     trainSet = TensorDataset(xTrainTensor, yTrainTensor)
     testSet = TensorDataset(xTestTensor, yTestTensor)
     
-    #print("Matrix", trainSet[0][0], "\nLabels", trainSet[0][1]) #WORKS PROPERLY
-    print("Matrix", testSet[0][0], "\nLabels", testSet[0][1])
-    
-    ###Split training set into training and validation.  Make validation roughly same amount in training data as test data.  1126/6387 or ~17.6%
+    ###Split training set into training and validation.  Make validation roughly same amount in training data as test data.  80/20 split.  
     trainSet, valSet = torch.utils.data.random_split(trainSet, [5110, 1277])
-    #print("Num, batches in trainingSet: ", int(5261/batchSize)) ##Will run in 657 batches total.  NOTE: Batches help with splitting should it run on a GPU instead.  
-    #print("Num, batches in validationSet: ", int(1126/batchSize))##Will run in 140 batches total.
 
     ###Loaders load the data into proper datasets for the neural network to learn off of.  
     trainLoader = torch.utils.data.DataLoader(trainSet, batch_size = batchSize, shuffle = True, num_workers = 0)
     valLoader = torch.utils.data.DataLoader(valSet, batch_size = batchSize, shuffle = True, num_workers = 0)
     testLoader = torch.utils.data.DataLoader(testSet, batch_size = batchSize, shuffle = True, num_workers = 0)
-    
+
+    ###Defines the net for use and also prints it to the device 
     net = convNeuralNet()
     print(net.to(device))
-
-    ###Loads training data and labels into the model.  Shows training info.  
-    for i, data in enumerate(trainLoader):
-        inputs, labels = data[0].to(device),data[1].to(device)
-        ###Needed to change order due to issues; pyTorch expects order [batch, channels, height, width] and I have [Batch, Height, width, channels].
-        ###Additionally, was processed as double so converted to float. 
-        inputs = inputs.permute(0, 3, 1, 2).float()  
-        print(f'input shape: {inputs.shape}')
-        print(f'after network shape: {net(inputs).shape}')
-        break
-
-
-    ###Def loss function and optimizer.  Using Cross-Entropy Loss and Adam optimization. 
+    
+    ###Def loss function and optimizer.  Using Cross-Entropy Loss and Stochastic Gradient Descent optimization. 
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)  
-    optimizer = optim.Adam(net.parameters(), lr=0.0001, weight_decay=1e-4)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
+    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum = 0.9, weight_decay=1e-4)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5) 
 
     ###Training loop:
-    epochs = 10
+    epochs = 20
 
     ###Track Accuracy and Loss over epochs
     accVOverEpochs = []
     accTOverEpochs = []
+    ###Training/Validation loop
     for epochIndex in range(epochs):
         print("Epoch :",epochIndex+1)
 
-
+        
         net.train(True) #set training mode
+        ###Reset epoch values
         running_loss = 0.0
         running_accuracy = 0.0
         avgAccTOverEpoch = []
         epochTotal = 0
-        
 
         #iterate over dataloader to train the data in the epoch.
         for batch_index, data in enumerate(trainLoader):
             inputs, labels = data[0].to(device), data[1].to(device)
-            inputs = inputs.permute(0, 3, 1, 2).float()
+            inputs = inputs.permute(0, 3, 1, 2).float() ###NECESSARY; MUST BE REORDERED AS SUCH TO AVOID ERROR
             labels = labels.view(-1).long() # Ensures proper shape to avoid error. 
-            
-            optimizer.zero_grad() #reset gradients.
 
-            outputs = net(inputs) #shape: [batch_size, 2] grab highest value and look at index
-            correct = torch.sum(labels == torch.argmax(outputs, dim=1)).item()
-            running_accuracy += correct/batchSize
+            #reset gradients.
+            optimizer.zero_grad() 
 
-            loss = criterion(outputs, labels) ##utilizes loss function
+            #shape: [batch_size, 2] grab highest value and look at index
+            outputs = net(inputs)
+
+            ###Gets the sum of the correct outputs & keep tabs on the general accuracy.  
+            correct = torch.sum(labels == torch.argmax(outputs, dim=1)).item() 
+            running_accuracy += correct/batchSize 
+
+            ### Calculate loss function and calculates loss value
+            loss = criterion(outputs, labels) 
             running_loss += loss.item()
-            loss.backward() #backpropagates to learn model and then takes an optimizer's step
+
+            ###backpropagates to learn model and then takes an optimizer's step
+            loss.backward() 
             optimizer.step()
 
             epochTotal += labels.size(0)
-            
+
+            ###Checks when the batches reach 200 so that it can print regular updates on the batch loss and batch accuracy within the epoch.  
             if batch_index % 200 == 199:
                 avgLossOverBatches = running_loss/200
                 avgAccOverBatches = (running_accuracy/200)*100
                 print(f'Batch {batch_index+1}, Loss: {avgLossOverBatches:.3f}, Accuracy: {avgAccOverBatches:.1f}%')
                 avgAccTOverEpoch.append(avgAccOverBatches)
-                #print(avgAccTOverEpoch)
-                #reset running accuracy and loss back to zero for start of next batch
+
+                ###reset running accuracy and loss back to zero for start of next batch
                 running_accuracy = 0.0
                 running_loss = 0.0
-
-        #accTAvg = (correct / 200) * 100
+        ###Gets the average sum of the batch accuracies so that it acts as the epoch's general accuracy for the charting at the end.  
         accTAvg = sum(avgAccTOverEpoch)/len(avgAccTOverEpoch)
         accTOverEpochs.append(accTAvg)
-            
+        
         print()
 
         ###Validation step:  Very similar to training data
-        net.train(False) #disable training
+        net.train(False)  ### Disable training.  
         runningLossV = 0.0
         runningAccuracyV = 0.0
 
+        ###Load through data in the same way tothe 
         for i, data in enumerate(valLoader):
             inputsV, labelsV = data[0].to(device), data[1].to(device)
             inputsV = inputsV.permute(0, 3, 1, 2).float()
             labelsV = labelsV.view(-1).long() 
 
+            ###Without calculating the gradient; saves memory.  Then grabs the accuracy values for the validation set by running them through that epoch's model version.  
             with torch.no_grad():
                 outputsV = net(inputsV)
+
+                ###Records num correct, running accuracy, the loss, and the running loss for the validation set.  
                 correctV = torch.sum(labelsV == torch.argmax(outputsV, dim=1)).item()
                 runningAccuracyV += correctV/batchSize
                 lossV = criterion(outputsV, labelsV)
                 runningLossV = lossV.item()
-                
+        ###Gets the average loss and accuracy over the batches   .    
         avgLossVOverBatches = runningLossV/len(valLoader)
         avgAccVOverBatches = (runningAccuracyV/len(valLoader))*100
 
-        ###append data 3 times to match the batch data
+        ###Appends the avg accuracy for the validation set to the list of them for data viz later.  
         accVOverEpochs.append(avgAccVOverBatches)
-        scheduler.step() ##advance the scheduler
+        scheduler.step() ###advance the scheduler
 
         print(f'Validation Loss: {avgLossVOverBatches:.3f}, Validation Accuracy: {avgAccVOverBatches:.1f}%')
 
@@ -345,21 +336,22 @@ def CNN(trainingData, testingData):
 
     print("BEGIN TESTING\n")
 
-    ###Start testing; gets number of correct classifications and total classifications
+    ###Start testing; gets number of correct classifications and total classifications.  Resets correct var.  
     correct = 0
     total = 0
-    # since we're not training, we don't need to calculate the gradients for our outputs
+    #### since we're not training, we don't need to calculate the gradients for our outputs
     with torch.no_grad():
         for i, data in enumerate(testLoader):
             seq, labels = data[0],data[1]
             seq = seq.permute(0, 3, 1, 2).float() 
-            # calculate outputs by running images through the network
+            #### calculate outputs by running images through the network
             outputs = net(seq)
-            # the class with the highest energy is what we choose as prediction
+            #### the class with the highest energy is what we choose as prediction
             _, predicted = torch.max(outputs, 1)
             total += labels.size(0)
             correct += (predicted.flatten() == labels.flatten()).sum().item()
 
+    ###Gets total test accuracy
     testAcc = 100* correct // total
 
     ###Test prints 
@@ -370,11 +362,12 @@ def CNN(trainingData, testingData):
 
     ###Prints total accuracy that will be present later on graph.  
     print(f'Accuracy of the network on the test set: {testAcc} %')
-    ###Now that it's done, you can grab the data from the epochs and plot them like before:
-
+    
+    ###Now that it's all done and over, grab the data from the epochs and plot them like before:
     plt.plot(accTOverEpochs)
     plt.plot(accVOverEpochs)
     plt.axhline(y=testAcc, color='gold', linestyle='--')
+    plt.set_ylim(50, 100)
     plt.title('Model Accuracy, CNN')
     plt.ylabel('Accuracy [%]')
     plt.xlabel('Epochs')
