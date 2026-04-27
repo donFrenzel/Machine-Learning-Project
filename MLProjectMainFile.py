@@ -432,6 +432,7 @@ def CNN(trainingData, testingData, numEpochs):
     plt.show()
 
 ###Adaptive Boosting Implementation
+
 def AdaptiveBoostingModel(trainingData, testingData):
     ### Def the columns in use/USE STANDARD COLS; NONSTANDARD NONPRESENT
     allColumns = ['A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','Y']
@@ -468,7 +469,7 @@ def AdaptiveBoostingModel(trainingData, testingData):
     ###Print various scores.
     accuracyScore = accuracy_score(yTest, yPredicted)
     reportCard = classification_report(yTest,yPredicted)
-    print("Accuracy: ", accuracyScore)
+    print("\nAccuracy: ", accuracyScore)
     print("\nFULL REPORT:\n",reportCard)
     print("Cross Validation Score: ", crossValAvgScore)
 
@@ -479,13 +480,11 @@ def AdaptiveBoostingModel(trainingData, testingData):
 
 ###Choice of feature Eval + brief explanation of each ML method before a confirmation.  Once "confirmed, runs the method, then outputs the output of the function.
 ### Idea is for it to be a user menu; mostly for demo use during presentation of the project.  
-
-
-
-
-
-
-#epochs = 20
-#CNN(trainingData,testingData,epochs)
-AdaptiveBoostingModel(trainingData, testingData)
-
+userDecision = input("\nWhich would you like to run?  \n(0)CNN on BiGram Decomposition \n(1)AdaBoost on Occurrence and Amino Acid Composition?\n")
+userDecision = int(userDecision)
+if userDecision == 0:
+    epochs = 20
+    CNN(trainingData, testingData, epochs)
+if userDecision == 1:
+    AdaptiveBoostingModel(trainingData, testingData)
+    
