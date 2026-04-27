@@ -1,7 +1,8 @@
 #---Program for ML Project---#
 #---Don Frenzel, Rohan Castillo, Lasaro Morell---#
 
-###NOTES FOR DON: Run on Python311.  Tensorflow only works until 3.13.  Should not be a problem otherwise
+###NOTES FOR DON: Run on Python311.  Tensorflow only works until 3.13.  Should not be a problem otherwise - THIS IS FOR INITIAL VERSION
+###               It may now run on up-to-date versions of Python, such as 3.14, and is no longer restricted as it was previously due to use of PyTorch.  
 
 ###Imports.  
 import pandas as pd
@@ -18,6 +19,17 @@ from torch.utils.data import TensorDataset, DataLoader
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+
+###Imports for AdaBoost Pipeline
+import sklearn
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import FunctionTransformer
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from sklearn.model_selection import cross_val_score
+
+
 
 ###Define Neural network Class
 class convNeuralNet(nn.Module):
@@ -52,7 +64,7 @@ class convNeuralNet(nn.Module):
 
     ###Forward Pass makes sure that it can go through
     def forward(self, x):
-        x = F.relu(self.bn1(self.conv1(x)))##runs x, img batch through first convolution.
+        x = F.relu(self.bn1(self.conv1(x)))##runs batch through first convolution.
         x = self.pool1(F.relu(self.bn2(self.conv2(x)))) ###'' second convolution
         x = self.dropout_spatial(x)
 
@@ -112,6 +124,7 @@ sequences = trainingData.sequence
 ### present in the sequence), occurrence (count of each amino acid within the sequence), and bi-gram (frequency of two adjacent amino acids, pair or dipeptide, in the sequence).
 ### so far, the first has been computed and loaded into a csv.  [Don][Fulfilled]
 
+
 ### Create functions for getting AAC (Count of a given amino acid within the sequence and then divide it by the length of the sequence, do for all and output as a 
 ### dict that can then be converted into a dataframe itself.  Returns a dataframe where each column is the normalized count of each amino acid.  
 def getAAC(sequence,desiredColumns):
@@ -124,7 +137,7 @@ def getAAC(sequence,desiredColumns):
 
     ## puts the counts data into a new dataframe and reindexes by the desired columns. 
     countsDF = pd.DataFrame([counts]).reindex(columns=desiredColumns)
-    countsDF = countsDF.fillna(0)
+    countsDF = countsDF.fillna(0).astype(int) #Handles NaN data.  
 
     return countsDF
 
@@ -141,8 +154,30 @@ def getOCC(sequence,desiredColumns):
             occDict[aa]=1
     ###now convert to a dataframe
     occDF = pd.DataFrame([occDict]).reindex(columns=desiredColumns)
-    occDF = occDF.fillna(0).astype(int)
+    occDF = occDF.fillna(0).astype(int) #Handles NaN values.  
     return occDF
+
+###OCCSeqs and AAC Seqs basically do the same thing as bigramSeqs; loop through data and convert, then output as a df.  In essence, they are the same function.  
+def OCCSeqs(data, desiredColumns):
+    ###Def list for concatenation
+    oSeqs = []
+    ###
+    for seq in data.sequence:
+        convSeq = getOCC(seq, desiredColumns)
+        oSeqs.append(convSeq)
+
+    oSeqsOutput = pd.concat(oSeqs, ignore_index=True)
+    ###rets dataframe of converted sequences.  
+    return oSeqsOutput
+
+def AACSeqs(data, desiredColumns):
+    aSeqs = []
+    for seq in data.sequence:
+        convSeq = getAAC(seq, desiredColumns)
+        aSeqs.append(convSeq)
+    aSeqsOutput = pd.concat(aSeqs, ignore_index=True)
+    return aSeqsOutput
+
 
 
 ### Bi-Gram: Get bi-gram or 2-gram sequences of each of the Amino Acids in the peptide, i.e. 2 character.  Can use count vectorizer in scikit learn for this, then count
@@ -190,11 +225,33 @@ def bigramSeqs(data, desiredColumns):
     result = np.expand_dims(result, axis=-1) 
     return result
 
+###Create a function which checks whether extra amino acids are present (U,X,Z)
+def checkUXZ(data):
+    countU = 0
+    countX = 0
+    countZ= 0
+    ###Tests ocurrence of u, x, and z and totals them.  
+    for i, seq in enumerate(data):
+        occurrence = getOCC(seq, allColumns)
+        if 'u' in occurrence.columns:
+            countU+=1
+        if 'x' in occurrence.columns:
+            countX+=1
+        if 'z' in occurrence.columns:
+            countZ+=1
+    ###Print out the counts.
+    print(countU,countX,countZ)
+
+###Check if U, X, or Z are present in any of the documents
+print('Counts respectively of U, X, & Z amino acids in training and testing data:')
+checkUXZ(sequences)
+checkUXZ(testingData.sequence)
+
 ### Third is grouping based on PLMs which can generate numeric encoding of proteins.  (Look into PLM's).  
 
 
 ### CNN function takes input of training & testing data rewritten in Pytorch:
-def CNN(trainingData, testingData):
+def CNN(trainingData, testingData, numEpochs):
     ### Now, convert all sequences to biGramSeqs and then all labels to np vectors; make sure dimensions are good to work with tensorflow.  Since data is
     ### autonormalized by function pipeline, there's no need to renormalize it.  
     classification = ['Nontoxic','Toxic']
@@ -232,13 +289,13 @@ def CNN(trainingData, testingData):
     net = convNeuralNet()
     print(net.to(device))
     
-    ###Def loss function and optimizer.  Using Cross-Entropy Loss and Stochastic Gradient Descent optimization. 
+    ###Def loss function and optimizer.  Using Cross-Entropy Loss and Stochastic Gradient Descent optimization. Weight decay added also to make sure to avoid overfititng. 
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)  
     optimizer = optim.SGD(net.parameters(), lr=0.001, momentum = 0.9, weight_decay=1e-4)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5) 
 
     ###Training loop:
-    epochs = 20
+    epochs = numEpochs
 
     ###Track Accuracy and Loss over epochs
     accVOverEpochs = []
@@ -367,12 +424,57 @@ def CNN(trainingData, testingData):
     plt.plot(accTOverEpochs)
     plt.plot(accVOverEpochs)
     plt.axhline(y=testAcc, color='gold', linestyle='--')
-    plt.set_ylim(50, 100)
+    plt.ylim(50, 100)
     plt.title('Model Accuracy, CNN')
     plt.ylabel('Accuracy [%]')
     plt.xlabel('Epochs')
     plt.legend(['Train','Val','Test'],loc='lower right')
     plt.show()
+
+###Adaptive Boosting Implementation
+def AdaptiveBoostingModel(trainingData, testingData):
+    ### Def the columns in use/USE STANDARD COLS; NONSTANDARD NONPRESENT
+    allColumns = ['A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','Y']
+
+    ###Define training and testing values:
+    xTrain = trainingData[['sequence']]
+    yTrain = trainingData['label']
+
+    xTest = testingData[['sequence']]
+    yTest = testingData['label']
+
+    ###USE OCCSeqs() and AACSeqs()
+    ###Use these to construct the pipeline for both Ocurrence (getOCC) and for Amino Acid Composition (AAC)
+    preprocessor = ColumnTransformer(transformers = [
+        ('OCC', FunctionTransformer(OCCSeqs, kw_args={'desiredColumns': allColumns}),['sequence']),
+        ('AAC', FunctionTransformer(AACSeqs, kw_args={'desiredColumns': allColumns}),['sequence'])])
+
+    ###Define the AdaBoost Pipeline for output; note to self, clf just means classifier.  Bad acronym.
+    adaBoostPipeline = Pipeline(steps=[('prep', preprocessor),('clf',AdaBoostClassifier())])
+
+    ###Train the classifier model
+    adaBoostPipeline.fit(xTrain, yTrain)
+
+    ### Test it against the test set.  
+    yPredicted = adaBoostPipeline.predict(xTest)
+
+    ###Try k-fold cross validation too;
+    crossValScores = cross_val_score(adaBoostPipeline, xTrain, yTrain, cv=5)
+
+    crossValAvgScore = crossValScores.mean()
+
+
+
+    ###Print various scores.
+    accuracyScore = accuracy_score(yTest, yPredicted)
+    reportCard = classification_report(yTest,yPredicted)
+    print("Accuracy: ", accuracyScore)
+    print("\nFULL REPORT:\n",reportCard)
+    print("Cross Validation Score: ", crossValAvgScore)
+
+
+
+
 ###Create basic text interface:
 
 ###Choice of feature Eval + brief explanation of each ML method before a confirmation.  Once "confirmed, runs the method, then outputs the output of the function.
@@ -380,4 +482,10 @@ def CNN(trainingData, testingData):
 
 
 
-CNN(trainingData,testingData)
+
+
+
+#epochs = 20
+#CNN(trainingData,testingData,epochs)
+AdaptiveBoostingModel(trainingData, testingData)
+
