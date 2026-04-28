@@ -1,0 +1,38 @@
+Best SVM Params:
+{'svm__C': 1, 'svm__class_weight': None, 'svm__gamma': 0.01}
+Best SVM CV Score: 0.9032
+
+Best Random Forest Params:
+{'max_depth': None, 'min_samples_leaf': 1, 'min_samples_split': 2, 'n_estimators': 50}
+Best Random Forest CV Score: 0.9061
+
+Best AdaBoost Params:
+{'estimator__max_depth': 3, 'estimator__min_samples_leaf': 2, 'learning_rate': 1.0, 'n_estimators': 400}
+Best AdaBoost CV Score: 0.9023
+
+Final SVM Test Results
+Confusion Matrix:
+[[766  40]
+ [ 76 244]]
+Accuracy: 0.8970
+Sensitivity: 0.7625
+Specificity: 0.9504
+MCC: 0.7404
+
+Final Random Forest Test Results
+Confusion Matrix:
+[[765  41]
+ [ 71 249]]
+Accuracy: 0.9005
+Sensitivity: 0.7781
+Specificity: 0.9491
+MCC: 0.7501
+
+Final AdaBoost Test Results
+Confusion Matrix:
+[[758  48]
+ [ 60 260]]
+Accuracy: 0.9041
+Sensitivity: 0.8125
+Specificity: 0.9404
+MCC: 0.7618
