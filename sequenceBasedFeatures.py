@@ -116,18 +116,9 @@ allColumns = ['A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T
 sequences = trainingData.sequence
 
 ## Import stuff/methods to extract features from the sequence data.
-
-## 3 Different Groups of Features Required.
-
-## Could actually group into feature 'groups' and analyze different feature groups within the peptide to create a measure of whether they are poisonous or not.
-
-## First goal will be to group based on physiochemical properties of Amino Acids.  Not sure how one would go about doing this.  [Rohan]
-
 ### Second is a group based on the alphabetical properties of the given peptides: Examples of such features are amino acid composition(AAC)(percentage of 
 ### each of standard 20 amino acids
 ### present in the sequence), occurrence (count of each amino acid within the sequence), and bi-gram (frequency of two adjacent amino acids, pair or dipeptide, in the sequence).
-### so far, the first has been computed and loaded into a csv.  [Don][Fulfilled]
-
 
 ### Create functions for getting AAC (Count of a given amino acid within the sequence and then divide it by the length of the sequence, do for all and output as a 
 ### dict that can then be converted into a dataframe itself.  Returns a dataframe where each column is the normalized count of each amino acid.  
@@ -145,7 +136,6 @@ def getAAC(sequence,desiredColumns):
 
     return countsDF
 
-    
 ### Ocurrence: piggyback off of AAC by just grabbing the pure counts of each; output on the side; count whether an amino acid from the library
 ### is present using boolean variables.  Returns a pandas dataframe where each column is an amino acid.  
 def getOCC(sequence,desiredColumns):
