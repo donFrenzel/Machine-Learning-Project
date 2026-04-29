@@ -20,6 +20,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
 from torchmetrics.classification import BinaryMatthewsCorrCoef
+from torchmetrics.classification import MulticlassConfusionMatrix
+
 
 ###Imports for AdaBoost Pipeline
 import sklearn
@@ -30,6 +32,7 @@ from sklearn.ensemble import AdaBoostClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 from sklearn.model_selection import cross_val_score
 from sklearn.metrics import matthews_corrcoef
+
 
 
 ###Define Neural network Class
@@ -399,7 +402,8 @@ def CNN(trainingData, testingData, numEpochs):
     total = 0
     ###Matthews Correlation Coefficient Function from PyTorch -- implemented because other group members using + good estimate.  
     mcc = BinaryMatthewsCorrCoef()
-
+    confusMatrix = MulticlassConfusionMatrix(num_classes=3)
+    
     #### since we're not training, we don't need to calculate the gradients for our outputs
     with torch.no_grad():
         for i, data in enumerate(testLoader):
@@ -415,10 +419,13 @@ def CNN(trainingData, testingData, numEpochs):
             correct += (predicted.flatten() == labels.flatten()).sum().item()
             
             mcc.update(predicted, targets)
+            confusMatrix.update(predicted, targets)
+
 
     ###Gets total test accuracy
     testAcc = 100* correct // total
     completeMCC = mcc.compute()
+    completeCM = confusMatrix.compute()
 
     ###Test prints 
     print(f"Final Correct: {correct}")
@@ -429,7 +436,8 @@ def CNN(trainingData, testingData, numEpochs):
 
     ###Prints total accuracy that will be present later on graph.  
     print(f'Accuracy of the network on the test set: {testAcc} %')
-    print(f"Matthews Correlation Coefficient for Convolutional Neural Network: {completeMCC.item():.4f}")    
+    print(f"Matthews Correlation Coefficient for Convolutional Neural Network: {completeMCC.item():.4f}")
+    print(f'Confusion Matrix for Convolutional Neural Network: {completeCM}')
     
     ###Now that it's all done and over, grab the data from the epochs and plot them like before:
     plt.plot(accTOverEpochs)
@@ -475,7 +483,11 @@ def AdaptiveBoostingModel(trainingData, testingData):
 
     crossValAvgScore = crossValScores.mean()
 
+    ###MCC imp.
     mcc = matthews_corrcoef(yTest, yPredicted)
+
+    ###Confusion Matrix Imp
+    confusionMatrix = confusion_matrix(yTest, yPredicted)
 
     ###Print various scores.
     accuracyScore = accuracy_score(yTest, yPredicted)
@@ -484,6 +496,8 @@ def AdaptiveBoostingModel(trainingData, testingData):
     print("\nFULL REPORT:\n",reportCard)
     print("Cross Validation Score: ", crossValAvgScore)
     print("Matthews Correlation Coefficient: ", mcc)
+    print("Confusion Matrix: \n", confusionMatrix)
+    
 
 ###Create basic text interface:
 
