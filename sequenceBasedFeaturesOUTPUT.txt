@@ -1,8 +1,120 @@
 Which would you like to run?  
 (0)CNN on BiGram Decomposition 
 (1)AdaBoost on Occurrence and Amino Acid Composition?
-1
+0
+convNeuralNet(
+  (conv1): Conv2d(1, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+  (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+  (conv2): Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+  (bn2): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+  (pool1): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+  (dropout_spatial): Dropout2d(p=0.2, inplace=False)
+  (fc1): Linear(in_features=12800, out_features=512, bias=True)
+  (bn_fc1): BatchNorm1d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+  (fc2): Linear(in_features=512, out_features=128, bias=True)
+  (dropout): Dropout(p=0.5, inplace=False)
+  (out): Linear(in_features=128, out_features=2, bias=True)
+)
+Epoch : 1
+Batch 200, Loss: 0.504, Accuracy: 80.4%
+Batch 400, Loss: 0.433, Accuracy: 87.4%
+Batch 600, Loss: 0.422, Accuracy: 87.1%
 
+Validation Loss: 0.002, Validation Accuracy: 89.7%
+*****************************************************
+
+Epoch : 2
+Batch 200, Loss: 0.410, Accuracy: 87.8%
+Batch 400, Loss: 0.402, Accuracy: 88.6%
+Batch 600, Loss: 0.397, Accuracy: 88.8%
+
+Validation Loss: 0.002, Validation Accuracy: 89.8%
+*****************************************************
+
+Epoch : 3
+Batch 200, Loss: 0.388, Accuracy: 88.5%
+Batch 400, Loss: 0.367, Accuracy: 90.8%
+Batch 600, Loss: 0.357, Accuracy: 91.1%
+
+Validation Loss: 0.001, Validation Accuracy: 90.9%
+*****************************************************
+
+Epoch : 4
+Batch 200, Loss: 0.342, Accuracy: 91.6%
+Batch 400, Loss: 0.357, Accuracy: 91.3%
+Batch 600, Loss: 0.356, Accuracy: 91.2%
+
+Validation Loss: 0.005, Validation Accuracy: 90.9%
+*****************************************************
+
+Epoch : 5
+Batch 200, Loss: 0.339, Accuracy: 92.4%
+Batch 400, Loss: 0.338, Accuracy: 91.7%
+Batch 600, Loss: 0.355, Accuracy: 91.0%
+
+Validation Loss: 0.002, Validation Accuracy: 90.7%
+*****************************************************
+
+Epoch : 6
+Batch 200, Loss: 0.327, Accuracy: 92.9%
+Batch 400, Loss: 0.326, Accuracy: 92.6%
+Batch 600, Loss: 0.322, Accuracy: 93.7%
+
+Validation Loss: 0.001, Validation Accuracy: 92.0%
+*****************************************************
+
+Epoch : 7
+Batch 200, Loss: 0.314, Accuracy: 94.1%
+Batch 400, Loss: 0.323, Accuracy: 93.1%
+Batch 600, Loss: 0.309, Accuracy: 94.1%
+
+Validation Loss: 0.001, Validation Accuracy: 91.9%
+*****************************************************
+
+Epoch : 8
+Batch 200, Loss: 0.301, Accuracy: 94.1%
+Batch 400, Loss: 0.290, Accuracy: 95.2%
+Batch 600, Loss: 0.312, Accuracy: 93.2%
+
+Validation Loss: 0.001, Validation Accuracy: 91.6%
+*****************************************************
+
+Epoch : 9
+Batch 200, Loss: 0.290, Accuracy: 95.7%
+Batch 400, Loss: 0.310, Accuracy: 93.4%
+Batch 600, Loss: 0.303, Accuracy: 94.4%
+
+Validation Loss: 0.001, Validation Accuracy: 92.3%
+*****************************************************
+
+Epoch : 10
+Batch 200, Loss: 0.286, Accuracy: 95.8%
+Batch 400, Loss: 0.289, Accuracy: 95.5%
+Batch 600, Loss: 0.289, Accuracy: 95.3%
+
+Validation Loss: 0.001, Validation Accuracy: 92.3%
+*****************************************************
+
+TRAINING COMPLETE!!!
+BEGIN TESTING
+
+Final Correct: 1036
+Final Total: 1126
+Label Shape: torch.Size([6])
+Predicted Shape: torch.Size([6])
+Accuracy of the network on the test set: 92 %
+Matthews Correlation Coefficient for Convolutional Neural Network: 0.7998
+Confusion Matrix for Convolutional Neural Network: 
+tensor([[775,  31,   0],
+        [ 59, 261,   0],
+        [  0,   0,   0]])
+_______________________________________________________________________________________________________________
+RESTART 
+_______________________________________________________________________________________________________________
+Which would you like to run?  
+(0)CNN on BiGram Decomposition 
+(1)AdaBoost on Occurrence and Amino Acid Composition?
+1
 Accuracy:  0.8037300177619894
 
 FULL REPORT:
