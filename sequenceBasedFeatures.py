@@ -15,10 +15,11 @@ from collections import Counter
 import torch
 import torchvision
 import torchvision.transforms as transforms
-from torch.utils.data import TensorDataset, DataLoader
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torch.utils.data import TensorDataset, DataLoader
+from torchmetrics.classification import BinaryMatthewsCorrCoef
 
 ###Imports for AdaBoost Pipeline
 import sklearn
@@ -28,7 +29,7 @@ from sklearn.preprocessing import FunctionTransformer
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 from sklearn.model_selection import cross_val_score
-
+from sklearn.metrics import matthews_corrcoef
 
 
 ###Define Neural network Class
@@ -396,29 +397,39 @@ def CNN(trainingData, testingData, numEpochs):
     ###Start testing; gets number of correct classifications and total classifications.  Resets correct var.  
     correct = 0
     total = 0
+    ###Matthews Correlation Coefficient Function from PyTorch -- implemented because other group members using + good estimate.  
+    mcc = BinaryMatthewsCorrCoef()
+
     #### since we're not training, we don't need to calculate the gradients for our outputs
     with torch.no_grad():
         for i, data in enumerate(testLoader):
             seq, labels = data[0],data[1]
             seq = seq.permute(0, 3, 1, 2).float() 
-            #### calculate outputs by running images through the network
+            #### calculate outputs by running images through the network net()
             outputs = net(seq)
             #### the class with the highest energy is what we choose as prediction
             _, predicted = torch.max(outputs, 1)
+            targets = labels.squeeze() #compress labels so that they work with MCC.  
+            
             total += labels.size(0)
             correct += (predicted.flatten() == labels.flatten()).sum().item()
+            
+            mcc.update(predicted, targets)
 
     ###Gets total test accuracy
     testAcc = 100* correct // total
+    completeMCC = mcc.compute()
 
     ###Test prints 
     print(f"Final Correct: {correct}")
     print(f"Final Total: {total}")
-    print(f"Label Shape: {labels.shape}")
+    
+    print(f"Label Shape: {targets.shape}")
     print(f"Predicted Shape: {predicted.shape}")
 
     ###Prints total accuracy that will be present later on graph.  
     print(f'Accuracy of the network on the test set: {testAcc} %')
+    print(f"Matthews Correlation Coefficient for Convolutional Neural Network: {completeMCC.item():.4f}")    
     
     ###Now that it's all done and over, grab the data from the epochs and plot them like before:
     plt.plot(accTOverEpochs)
@@ -464,7 +475,7 @@ def AdaptiveBoostingModel(trainingData, testingData):
 
     crossValAvgScore = crossValScores.mean()
 
-
+    mcc = matthews_corrcoef(yTest, yPredicted)
 
     ###Print various scores.
     accuracyScore = accuracy_score(yTest, yPredicted)
@@ -472,9 +483,7 @@ def AdaptiveBoostingModel(trainingData, testingData):
     print("\nAccuracy: ", accuracyScore)
     print("\nFULL REPORT:\n",reportCard)
     print("Cross Validation Score: ", crossValAvgScore)
-
-
-
+    print("Matthews Correlation Coefficient: ", mcc)
 
 ###Create basic text interface:
 
@@ -483,8 +492,7 @@ def AdaptiveBoostingModel(trainingData, testingData):
 userDecision = input("\nWhich would you like to run?  \n(0)CNN on BiGram Decomposition \n(1)AdaBoost on Occurrence and Amino Acid Composition?\n")
 userDecision = int(userDecision)
 if userDecision == 0:
-    epochs = 20
+    epochs = 10
     CNN(trainingData, testingData, epochs)
 if userDecision == 1:
     AdaptiveBoostingModel(trainingData, testingData)
-    
