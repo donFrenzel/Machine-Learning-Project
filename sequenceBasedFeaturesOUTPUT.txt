@@ -1,0 +1,24 @@
+Which would you like to run?  
+(0)CNN on BiGram Decomposition 
+(1)AdaBoost on Occurrence and Amino Acid Composition?
+1
+
+Accuracy:  0.8037300177619894
+
+FULL REPORT:
+               precision    recall  f1-score   support
+
+           0       0.84      0.90      0.87       806
+           1       0.69      0.57      0.62       320
+
+    accuracy                           0.80      1126
+   macro avg       0.76      0.73      0.74      1126
+weighted avg       0.80      0.80      0.80      1126
+
+Cross Validation Score:  0.8177596160798428
+Matthews Correlation Coefficient:  0.49521259827706343
+Confusion Matrix: 
+ [[723  83]
+ [138 182]]
+
+ 
